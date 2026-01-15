@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Dashboard - Bellevue</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Auth Section */
+        .auth-section {
+            max-width: 400px;
+            margin: 100px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .auth-section h2 {
+            color: #b79a5f;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            display: none;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-justify-content: space-between;
+            justify-content: space-between;
+            -webkit-align-items: center;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        header h1 {
+            color: #b79a5f;
+            font-size: 1.8rem;
+        }
+
+        .user-info {
+            display: -webkit-flex;
+            display: flex;
+            -webkit-align-items: center;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Settings */
+        .settings-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        /* Menu Cards */
+        .menu-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .menu-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .menu-header {
+            display: -webkit-flex;
+            display: flex;
+            -webkit-justify-content: space-between;
+            justify-content: space-between;
+            -webkit-align-items: center;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .menu-title {
+            display: -webkit-flex;
+            display: flex;
+            -webkit-align-items: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-title span {
+            font-size: 2rem;
+        }
+
+        .menu-title h3 {
+            color: #b79a5f;
+            font-size: 1.2rem;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: 0.3s;
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            -webkit-transition: 0.3s;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #b79a5f;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            -webkit-transform: translateX(24px);
+            transform: translateX(24px);
+        }
+
+        /* Language Tabs */
+        .language-tabs {
+            display: -webkit-flex;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .language-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: #666;
+            font-size: 0.9rem;
+            -webkit-transition: all 0.3s;
+            transition: all 0.3s;
+        }
+
+        .language-tab.active {
+            color: #b79a5f;
+            border-bottom: 2px solid #b79a5f;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .upload-section.hidden {
+            display: none;
+        }
+
+        .upload-row {
+            display: -webkit-flex;
+            display: flex;
+            gap: 15px;
+            -webkit-align-items: flex-end;
+            align-items: flex-end;
+        }
+
+        .input-group {
+            -webkit-flex: 1;
+            flex: 1;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.95rem;
+        }
+
+        button {
+            background: #b79a5f;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            -webkit-transition: all 0.3s;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #a08850;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .file-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+        }
+
+        .file-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .file-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .file-status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        @media (max-width: 768px) {
+            .menu-cards {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                -webkit-flex-direction: column;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .upload-row {
+                -webkit-flex-direction: column;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Section -->
+    <div id="authSection" class="auth-section">
+        <h2>Manager Login</h2>
+        <div class="input-group">
+            <label>Email</label>
+            <input type="email" id="loginEmail" placeholder="admin@bellevue.com">
+        </div>
+        <div class="input-group" style="margin-top: 15px;">
+            <label>Password</label>
+            <input type="password" id="loginPassword" placeholder="Password">
+        </div>
+        <button onclick="login()" style="width: 100%; margin-top: 20px;">Login</button>
+        <div id="authMessage" style="margin-top: 15px;"></div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="dashboard">
+        <div class="container">
+            <header>
+                <h1>Menu Manager</h1>
+                <div class="user-info">
+                    <span id="userEmail"></span>
+                    <button onclick="logout()">Logout</button>
+                </div>
+            </header>
+
+            <div id="messageContainer"></div>
+
+            <!-- Restaurant Settings -->
+            <div class="settings-section">
+                <h2 style="color: #b79a5f; margin-bottom: 15px;">Restaurant Settings</h2>
+                <div class="upload-row">
+                    <div class="input-group">
+                        <label>Restaurant Name</label>
+                        <input type="text" id="restaurantName" placeholder="Hotel Bellevue">
+                    </div>
+                    <button onclick="saveSettings()">Save Name</button>
+                </div>
+            </div>
+
+            <!-- Menu Cards -->
+            <div id="menuCardsContainer" class="menu-cards"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            var API_URL = window.location.origin + '/api';
+            var authToken = localStorage.getItem('authToken');
+            var currentUser = localStorage.getItem('userEmail');
+
+            var MENU_TYPES = [
+                { id: 'daily', icon: '🍽️', name: 'Daily Menu' },
+                { id: 'menu', icon: '📋', name: 'Main Menu' },
+                { id: 'wine', icon: '🍷', name: 'Wine List' },
+                { id: 'beverages', icon: '🍺', name: 'Beverages & Beers' }
+            ];
+
+            var LANGUAGES = [
+                { code: 'de', name: 'Deutsch' },
+                { code: 'en', name: 'English' },
+                { code: 'fr', name: 'Français' },
+                { code: 'it', name: 'Italiano' }
+            ];
+
+            // Check auth on load
+            window.addEventListener('load', function() {
+                if (authToken && currentUser) {
+                    showDashboard();
+                } else {
+                    showAuth();
+                }
+            });
+
+            // Login
+            window.login = function() {
+                var email = document.getElementById('loginEmail').value;
+                var password = document.getElementById('loginPassword').value;
+
+                if (!email || !password) {
+                    showAuthMessage('Please enter email and password', 'error');
+                    return;
+                }
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', API_URL + '/login', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var data = JSON.parse(xhr.responseText);
+                        authToken = data.token;
+                        currentUser = data.email;
+                        localStorage.setItem('authToken', authToken);
+                        localStorage.setItem('userEmail', currentUser);
+                        showDashboard();
+                    } else {
+                        showAuthMessage('Invalid credentials', 'error');
+                    }
+                };
+
+                xhr.onerror = function() {
+                    showAuthMessage('Network error', 'error');
+                };
+
+                xhr.send(JSON.stringify({ email: email, password: password }));
+            };
+
+            // Logout
+            window.logout = function() {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userEmail');
+                authToken = null;
+                currentUser = null;
+                showAuth();
+            };
+
+            // Show auth section
+            function showAuth() {
+                document.getElementById('authSection').style.display = 'block';
+                document.getElementById('dashboard').className = 'dashboard';
+            }
+
+            // Show dashboard
+            function showDashboard() {
+                document.getElementById('authSection').style.display = 'none';
+                document.getElementById('dashboard').className = 'dashboard active';
+                document.getElementById('userEmail').textContent = currentUser;
+                loadSettings();
+                loadMenus();
+            }
+
+            // Show auth message
+            function showAuthMessage(message, type) {
+                var msgEl = document.getElementById('authMessage');
+                msgEl.className = 'message ' + type;
+                msgEl.textContent = message;
+            }
+
+            // Show message
+            function showMessage(message, type) {
+                var container = document.getElementById('messageContainer');
+                var msgEl = document.createElement('div');
+                msgEl.className = 'message ' + type;
+                msgEl.textContent = message;
+                container.appendChild(msgEl);
+
+                setTimeout(function() {
+                    container.removeChild(msgEl);
+                }, 5000);
+            }
+
+            // Load settings
+            function loadSettings() {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', API_URL + '/settings', true);
+
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var settings = JSON.parse(xhr.responseText);
+                        document.getElementById('restaurantName').value = settings.restaurantName;
+                    }
+                };
+
+                xhr.send();
+            }
+
+            // Save settings
+            window.saveSettings = function() {
+                var name = document.getElementById('restaurantName').value;
+
+                if (!name) {
+                    showMessage('Please enter restaurant name', 'error');
+                    return;
+                }
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', API_URL + '/settings', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('Authorization', 'Bearer ' + authToken);
+
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        showMessage('Settings saved successfully', 'success');
+                    } else {
+                        showMessage('Failed to save settings', 'error');
+                    }
+                };
+
+                xhr.send(JSON.stringify({ restaurantName: name }));
+            };
+
+            // Load menus
+            function loadMenus() {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', API_URL + '/menus', true);
+
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var menus = JSON.parse(xhr.responseText);
+                        renderMenuCards(menus);
+                    }
+                };
+
+                xhr.send();
+            }
+
+            // Render menu cards
+            function renderMenuCards(menusData) {
+                var container = document.getElementById('menuCardsContainer');
+                var html = '';
+
+                for (var i = 0; i < MENU_TYPES.length; i++) {
+                    var menu = MENU_TYPES[i];
+                    var data = menusData[menu.id];
+                    var isEnabled = data && data.enabled;
+
+                    html += '<div class="menu-card">';
+                    html += '<div class="menu-header">';
+                    html += '<div class="menu-title">';
+                    html += '<span>' + menu.icon + '</span>';
+                    html += '<h3>' + menu.name + '</h3>';
+                    html += '</div>';
+                    html += '<label class="toggle-switch">';
+                    html += '<input type="checkbox" ' + (isEnabled ? 'checked' : '') + ' onchange="toggleMenu(\'' + menu.id + '\', this.checked)">';
+                    html += '<span class="toggle-slider"></span>';
+                    html += '</label>';
+                    html += '</div>';
+
+                    // Language tabs
+                    html += '<div class="language-tabs" id="tabs-' + menu.id + '">';
+                    for (var j = 0; j < LANGUAGES.length; j++) {
+                        var lang = LANGUAGES[j];
+                        var activeClass = j === 0 ? 'active' : '';
+                        html += '<button class="language-tab ' + activeClass + '" onclick="switchLanguage(\'' + menu.id + '\', \'' + lang.code + '\')" data-menu="' + menu.id + '" data-lang="' + lang.code + '">';
+                        html += lang.name;
+                        html += '</button>';
+                    }
+                    html += '</div>';
+
+                    // Upload sections
+                    for (var k = 0; k < LANGUAGES.length; k++) {
+                        var lang = LANGUAGES[k];
+                        var hiddenClass = k !== 0 ? 'hidden' : '';
+                        var pdfInfo = data && data.pdfs && data.pdfs[lang.code];
+
+                        html += '<div class="upload-section ' + hiddenClass + '" id="upload-' + menu.id + '-' + lang.code + '" data-menu="' + menu.id + '" data-lang="' + lang.code + '">';
+                        html += '<div class="upload-row">';
+                        html += '<div class="input-group">';
+                        html += '<label>Upload PDF (' + lang.name + ')</label>';
+                        html += '<input type="file" id="file-' + menu.id + '-' + lang.code + '" accept="application/pdf">';
+                        html += '</div>';
+                        html += '<button onclick="uploadMenu(\'' + menu.id + '\', \'' + lang.code + '\')">Upload</button>';
+                        html += '</div>';
+                        html += '<div class="file-status" id="status-' + menu.id + '-' + lang.code + '">';
+                        if (pdfInfo) {
+                            html += '<span class="info">Current: ' + pdfInfo.fileName + '</span>';
+                        }
+                        html += '</div>';
+                        html += '</div>';
+                    }
+
+                    html += '</div>';
+                }
+
+                container.innerHTML = html;
+            }
+
+            // Switch language tab
+            window.switchLanguage = function(menuId, langCode) {
+                var tabs = document.querySelectorAll('#tabs-' + menuId + ' .language-tab');
+                for (var i = 0; i < tabs.length; i++) {
+                    var tab = tabs[i];
+                    if (tab.getAttribute('data-lang') === langCode) {
+                        tab.className = 'language-tab active';
+                    } else {
+                        tab.className = 'language-tab';
+                    }
+                }
+
+                var sections = document.querySelectorAll('[id^="upload-' + menuId + '-"]');
+                for (var j = 0; j < sections.length; j++) {
+                    var section = sections[j];
+                    if (section.getAttribute('data-lang') === langCode) {
+                        section.className = 'upload-section';
+                    } else {
+                        section.className = 'upload-section hidden';
+                    }
+                }
+            };
+
+            // Toggle menu
+            window.toggleMenu = function(menuType, enabled) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', API_URL + '/menus/' + menuType + '/toggle', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.setRequestHeader('Authorization', 'Bearer ' + authToken);
+
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        showMessage('Menu status updated', 'success');
+                    } else {
+                        showMessage('Failed to update menu', 'error');
+                    }
+                };
+
+                xhr.send(JSON.stringify({ enabled: enabled }));
+            };
+
+            // Upload menu
+            window.uploadMenu = function(menuType, langCode) {
+                var fileInput = document.getElementById('file-' + menuType + '-' + langCode);
+                var file = fileInput.files[0];
+                var statusEl = document.getElementById('status-' + menuType + '-' + langCode);
+
+                if (!file) {
+                    statusEl.className = 'file-status error';
+                    statusEl.textContent = 'Please select a PDF file';
+                    return;
+                }
+
+                if (file.type !== 'application/pdf') {
+                    statusEl.className = 'file-status error';
+                    statusEl.textContent = 'Only PDF files allowed';
+                    return;
+                }
+
+                statusEl.className = 'file-status info';
+                statusEl.textContent = 'Uploading...';
+
+                var formData = new FormData();
+                formData.append('pdf', file);
+                formData.append('menuType', menuType);
+                formData.append('language', langCode);
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', API_URL + '/menus/upload', true);
+                xhr.setRequestHeader('Authorization', 'Bearer ' + authToken);
+
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        statusEl.className = 'file-status success';
+                        statusEl.textContent = 'Uploaded successfully! Current: ' + file.name;
+                        fileInput.value = '';
+                        showMessage('PDF uploaded successfully', 'success');
+                    } else {
+                        statusEl.className = 'file-status error';
+                        statusEl.textContent = 'Upload failed';
+                    }
+                };
+
+                xhr.onerror = function() {
+                    statusEl.className = 'file-status error';
+                    statusEl.textContent = 'Network error';
+                };
+
+                xhr.send(formData);
+            };
+        })();
+    </script>
+</body>
+</html>
