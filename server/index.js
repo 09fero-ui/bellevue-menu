@@ -298,12 +298,16 @@ app.post('/api/menus/upload', authenticate, function(req, res) {
                 return res.status(500).json({ error: 'Failed to upload to cloud storage' });
             }
 
+            // Construct public delivery URL for raw files
+            var cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+            var deliveryUrl = 'https://res.cloudinary.com/' + cloudName + '/raw/upload/' + result.public_id + '.pdf';
+
             // Save new PDF info with Cloudinary URL
             menus[menuType].pdfs[language] = {
-                url: result.secure_url,
+                url: deliveryUrl,
                 fileName: uploadedFile.originalname,
                 publicId: result.public_id,
-                cloudinaryUrl: result.secure_url,
+                cloudinaryUrl: deliveryUrl,
                 uploadedAt: new Date().toISOString()
             };
 
@@ -312,7 +316,7 @@ app.post('/api/menus/upload', authenticate, function(req, res) {
             res.json({
                 success: true,
                 message: 'PDF uploaded successfully',
-                url: result.secure_url
+                url: deliveryUrl
             });
         });
     });
