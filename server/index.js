@@ -118,12 +118,18 @@ function authenticate(req, res, next) {
 // Configure multer for file uploads
 var storage = multer.diskStorage({
     destination: function(req, file, cb) {
-        var menuType = req.body.menuType;
+        var menuType = req.body.menuType || 'daily'; // Default fallback
         var uploadPath = path.join(UPLOADS_DIR, menuType);
+        
+        // Ensure directory exists
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        
         cb(null, uploadPath);
     },
     filename: function(req, file, cb) {
-        var lang = req.body.language;
+        var lang = req.body.language || 'de'; // Default fallback
         var timestamp = Date.now();
         cb(null, lang + '-' + timestamp + '.pdf');
     }
@@ -225,56 +231,68 @@ app.get('/api/menus/:type/:lang', function(req, res) {
 });
 
 // Upload menu PDF (authenticated)
-app.post('/api/menus/upload', authenticate, upload.single('pdf'), function(req, res) {
-    var menuType = req.body.menuType;
-    var language = req.body.language;
-
-    if (!menuType || !language) {
-        return res.status(400).json({ error: 'Menu type and language required' });
-    }
-
-    if (MENU_TYPES.indexOf(menuType) === -1 || LANGUAGES.indexOf(language) === -1) {
-        return res.status(400).json({ error: 'Invalid menu type or language' });
-    }
-
-    if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
-    }
-
-    try {
-        var menus = readJSON(MENUS_FILE);
-        
-        // Delete old PDF if exists
-        if (menus[menuType].pdfs[language]) {
-            var oldPath = menus[menuType].pdfs[language].filePath;
-            if (fs.existsSync(oldPath)) {
-                fs.unlinkSync(oldPath);
-                console.log('Deleted old PDF:', oldPath);
-            }
+app.post('/api/menus/upload', authenticate, function(req, res) {
+    // Use upload.fields to parse both file and text fields
+    var uploadHandler = upload.fields([{ name: 'pdf', maxCount: 1 }]);
+    
+    uploadHandler(req, res, function(err) {
+        if (err) {
+            console.error('Upload error:', err);
+            return res.status(400).json({ error: err.message });
         }
 
-        // Save new PDF info
-        var pdfUrl = '/uploads/' + menuType + '/' + req.file.filename;
-        var filePath = req.file.path;
-        
-        menus[menuType].pdfs[language] = {
-            url: pdfUrl,
-            fileName: req.file.originalname,
-            filePath: filePath,
-            uploadedAt: new Date().toISOString()
-        };
+        var menuType = req.body.menuType;
+        var language = req.body.language;
 
-        writeJSON(MENUS_FILE, menus);
+        if (!menuType || !language) {
+            return res.status(400).json({ error: 'Menu type and language required' });
+        }
 
-        res.json({
-            success: true,
-            message: 'PDF uploaded successfully',
-            url: pdfUrl
-        });
-    } catch (err) {
-        console.error('Upload error:', err);
-        res.status(500).json({ error: 'Failed to save menu' });
-    }
+        if (MENU_TYPES.indexOf(menuType) === -1 || LANGUAGES.indexOf(language) === -1) {
+            return res.status(400).json({ error: 'Invalid menu type or language' });
+        }
+
+        if (!req.files || !req.files.pdf || !req.files.pdf[0]) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        var uploadedFile = req.files.pdf[0];
+
+        try {
+            var menus = readJSON(MENUS_FILE);
+            
+            // Delete old PDF if exists
+            if (menus[menuType].pdfs[language]) {
+                var oldPath = menus[menuType].pdfs[language].filePath;
+                if (fs.existsSync(oldPath)) {
+                    fs.unlinkSync(oldPath);
+                    console.log('Deleted old PDF:', oldPath);
+                }
+            }
+
+            // Save new PDF info
+            var pdfUrl = '/uploads/' + menuType + '/' + uploadedFile.filename;
+            var filePath = uploadedFile.path;
+            
+            menus[menuType].pdfs[language] = {
+                url: pdfUrl,
+                fileName: uploadedFile.originalname,
+                filePath: filePath,
+                uploadedAt: new Date().toISOString()
+            };
+
+            writeJSON(MENUS_FILE, menus);
+
+            res.json({
+                success: true,
+                message: 'PDF uploaded successfully',
+                url: pdfUrl
+            });
+        } catch (err) {
+            console.error('Upload error:', err);
+            res.status(500).json({ error: 'Failed to save menu' });
+        }
+    });
 });
 
 // Toggle menu enabled status (authenticated)
