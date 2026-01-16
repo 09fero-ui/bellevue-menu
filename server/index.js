@@ -8,6 +8,14 @@ var fs = require('fs');
 var bcrypt = require('bcrypt');
 var jwt = require('jsonwebtoken');
 var cors = require('cors');
+var cloudinary = require('cloudinary').v2;
+
+// Configure Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 var app = express();
 var PORT = process.env.PORT || 3000;
@@ -257,27 +265,43 @@ app.post('/api/menus/upload', authenticate, function(req, res) {
         }
 
         var uploadedFile = req.files.pdf[0];
+        var menus = readJSON(MENUS_FILE);
 
-        try {
-            var menus = readJSON(MENUS_FILE);
-            
-            // Delete old PDF if exists
-            if (menus[menuType].pdfs[language]) {
-                var oldPath = menus[menuType].pdfs[language].filePath;
-                if (fs.existsSync(oldPath)) {
-                    fs.unlinkSync(oldPath);
-                    console.log('Deleted old PDF:', oldPath);
+        // Delete old PDF from Cloudinary if exists
+        if (menus[menuType].pdfs[language] && menus[menuType].pdfs[language].publicId) {
+            cloudinary.uploader.destroy(menus[menuType].pdfs[language].publicId, { resource_type: 'raw' }, function(error, result) {
+                if (error) {
+                    console.log('Error deleting old PDF from Cloudinary:', error);
+                } else {
+                    console.log('Deleted old PDF from Cloudinary:', result);
                 }
+            });
+        }
+
+        // Upload to Cloudinary
+        var publicId = 'bellevue-menus/' + menuType + '/' + language + '-' + Date.now();
+        
+        cloudinary.uploader.upload(uploadedFile.path, {
+            resource_type: 'raw',
+            public_id: publicId,
+            format: 'pdf'
+        }, function(error, result) {
+            // Delete temp file
+            if (fs.existsSync(uploadedFile.path)) {
+                fs.unlinkSync(uploadedFile.path);
             }
 
-            // Save new PDF info
-            var pdfUrl = '/uploads/' + menuType + '/' + uploadedFile.filename;
-            var filePath = uploadedFile.path;
-            
+            if (error) {
+                console.error('Cloudinary upload error:', error);
+                return res.status(500).json({ error: 'Failed to upload to cloud storage' });
+            }
+
+            // Save new PDF info with Cloudinary URL
             menus[menuType].pdfs[language] = {
-                url: pdfUrl,
+                url: result.secure_url,
                 fileName: uploadedFile.originalname,
-                filePath: filePath,
+                publicId: result.public_id,
+                cloudinaryUrl: result.secure_url,
                 uploadedAt: new Date().toISOString()
             };
 
@@ -286,12 +310,9 @@ app.post('/api/menus/upload', authenticate, function(req, res) {
             res.json({
                 success: true,
                 message: 'PDF uploaded successfully',
-                url: pdfUrl
+                url: result.secure_url
             });
-        } catch (err) {
-            console.error('Upload error:', err);
-            res.status(500).json({ error: 'Failed to save menu' });
-        }
+        });
     });
 });
 
