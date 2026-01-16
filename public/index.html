@@ -565,8 +565,14 @@
                 viewer.className = 'pdf-viewer active';
                 container.innerHTML = '<div class="pdf-loading">Loading PDF...</div>';
                 
-                var fullUrl = window.location.origin + pdfUrl;
-                renderPDF(fullUrl, container);
+                // Check if URL is already complete (Cloudinary) or relative (local)
+                var fullUrl = pdfUrl;
+                if (pdfUrl.indexOf('http') !== 0) {
+                    fullUrl = window.location.origin + pdfUrl;
+                }
+                
+                // Use iframe for better compatibility with Cloudinary
+                container.innerHTML = '<iframe src="' + fullUrl + '" style="width:100%;height:calc(100vh - 56px);border:none;"></iframe>';
             }
 
             // Render PDF using PDF.js
