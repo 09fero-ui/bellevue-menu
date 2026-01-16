@@ -284,7 +284,9 @@ app.post('/api/menus/upload', authenticate, function(req, res) {
         cloudinary.uploader.upload(uploadedFile.path, {
             resource_type: 'raw',
             public_id: publicId,
-            format: 'pdf'
+            format: 'pdf',
+            access_mode: 'public',
+            type: 'upload'
         }, function(error, result) {
             // Delete temp file
             if (fs.existsSync(uploadedFile.path)) {
