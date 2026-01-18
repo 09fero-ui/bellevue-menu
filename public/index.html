@@ -187,9 +187,7 @@
             height: 100vh;
             background: #ffffff;
             z-index: 1000;
-            overflow-y: scroll;
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
+            overflow: hidden;
         }
 
         .pdf-viewer.active {
@@ -228,6 +226,71 @@
 
         .close-btn {
             background: rgba(183, 154, 95, 0.08);
+            border: 1px solid rgba(183, 154, 95, 0.25);
+            color: #b79a5f;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            -webkit-transition: all 0.3s ease;
+            transition: all 0.3s ease;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-align-items: center;
+            align-items: center;
+            -webkit-justify-content: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .close-btn:active {
+            background: rgba(183, 154, 95, 0.15);
+            border-color: rgba(183, 154, 95, 0.4);
+        }
+
+        .pdf-container {
+            position: absolute;
+            top: 56px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow-x: scroll;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x mandatory;
+            display: -webkit-flex;
+            display: flex;
+        }
+
+        .pdf-page-wrapper {
+            width: 100vw;
+            height: 100%;
+            flex-shrink: 0;
+            scroll-snap-align: start;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-align-items: center;
+            align-items: center;
+            -webkit-justify-content: center;
+            justify-content: center;
+            background: #ffffff;
+        }
+
+        .pdf-page {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            display: block;
+        }
+
+        .pdf-loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            font-size: 1.1rem;
+        }
             border: 1px solid rgba(183, 154, 95, 0.25);
             color: #b79a5f;
             width: 36px;
@@ -565,18 +628,79 @@
                 viewer.className = 'pdf-viewer active';
                 container.innerHTML = '<div class="pdf-loading">Loading PDF...</div>';
                 
-                // Convert base64 to blob and create object URL
+                // Convert base64 to Uint8Array for PDF.js
                 var base64Data = pdfData.base64;
                 var binaryString = window.atob(base64Data);
                 var bytes = new Uint8Array(binaryString.length);
                 for (var i = 0; i < binaryString.length; i++) {
                     bytes[i] = binaryString.charCodeAt(i);
                 }
-                var blob = new Blob([bytes], { type: 'application/pdf' });
-                var blobUrl = URL.createObjectURL(blob);
                 
-                // Display in iframe
-                container.innerHTML = '<iframe src="' + blobUrl + '" style="width:100%;height:calc(100vh - 56px);border:none;"></iframe>';
+                // Render with PDF.js
+                if (typeof pdfjsLib === 'undefined') {
+                    // Fallback to iframe if PDF.js not available
+                    var blob = new Blob([bytes], { type: 'application/pdf' });
+                    var blobUrl = URL.createObjectURL(blob);
+                    container.innerHTML = '<iframe src="' + blobUrl + '" style="width:100%;height:100%;border:none;"></iframe>';
+                    return;
+                }
+                
+                var loadingTask = pdfjsLib.getDocument({ data: bytes });
+                
+                loadingTask.promise.then(function(pdf) {
+                    container.innerHTML = '';
+                    
+                    var containerHeight = window.innerHeight - 56;
+                    var containerWidth = window.innerWidth;
+                    
+                    function renderPage(pageNum) {
+                        pdf.getPage(pageNum).then(function(page) {
+                            var viewport = page.getViewport({ scale: 1 });
+                            
+                            // Calculate scale to fit page in viewport
+                            var scale = Math.min(
+                                (containerWidth * 0.95) / viewport.width,
+                                (containerHeight * 0.95) / viewport.height
+                            );
+                            
+                            var scaledViewport = page.getViewport({ scale: scale });
+                            
+                            // Create wrapper for horizontal scrolling
+                            var wrapper = document.createElement('div');
+                            wrapper.className = 'pdf-page-wrapper';
+                            
+                            var canvas = document.createElement('canvas');
+                            canvas.className = 'pdf-page';
+                            var context = canvas.getContext('2d');
+                            
+                            var dpr = window.devicePixelRatio || 1;
+                            canvas.height = scaledViewport.height * dpr;
+                            canvas.width = scaledViewport.width * dpr;
+                            
+                            canvas.style.width = scaledViewport.width + 'px';
+                            canvas.style.height = scaledViewport.height + 'px';
+                            
+                            wrapper.appendChild(canvas);
+                            container.appendChild(wrapper);
+                            
+                            var renderContext = {
+                                canvasContext: context,
+                                viewport: page.getViewport({ scale: scale * dpr })
+                            };
+                            
+                            page.render(renderContext).promise.then(function() {
+                                if (pageNum < pdf.numPages) {
+                                    renderPage(pageNum + 1);
+                                }
+                            });
+                        });
+                    }
+                    
+                    renderPage(1);
+                }).catch(function(error) {
+                    console.error('PDF loading error:', error);
+                    container.innerHTML = '<div class="pdf-loading">Failed to load PDF</div>';
+                });
             }
 
             // Render PDF using PDF.js
