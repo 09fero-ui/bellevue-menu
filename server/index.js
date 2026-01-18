@@ -354,6 +354,25 @@ app.post('/api/menus/:type/toggle', authenticate, function(req, res) {
     }
 });
 
+// Reset all menu data (authenticated) - for debugging
+app.post('/api/menus/reset-all', authenticate, function(req, res) {
+    try {
+        var initialMenus = {};
+        MENU_TYPES.forEach(function(type) {
+            initialMenus[type] = {
+                type: type,
+                enabled: false,
+                pdfs: {}
+            };
+        });
+        writeJSON(MENUS_FILE, initialMenus);
+        
+        res.json({ success: true, message: 'All menu data reset' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to reset data' });
+    }
+});
+
 // Get settings (public)
 app.get('/api/settings', function(req, res) {
     try {
