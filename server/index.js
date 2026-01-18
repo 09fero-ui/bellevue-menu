@@ -1,663 +1,387 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Menu">
-    <title>Restaurant Menu - Bellevue</title>
-    <link rel="apple-touch-icon" href="/icon-192.png">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+// Bellevue Menu System - Legacy Server for iOS 9+
+// Node.js + Express backend
 
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background: #ffffff;
-            color: #333333;
-            min-height: 100vh;
-            padding: 20px;
-            line-height: 1.6;
-            -webkit-user-select: none;
-            -webkit-touch-callout: none;
-        }
+var express = require('express');
+var multer = require('multer');
+var path = require('path');
+var fs = require('fs');
+var bcrypt = require('bcrypt');
+var jwt = require('jsonwebtoken');
+var cors = require('cors');
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
+var app = express();
+var PORT = process.env.PORT || 3000;
+var JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production';
 
-        header {
-            text-align: center;
-            padding: 40px 0;
-            border-bottom: 1px solid rgba(183, 154, 95, 0.2);
-            margin-bottom: 40px;
-        }
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../public')));
 
-        .logo {
-            max-width: 300px;
-            height: auto;
-            margin-bottom: 30px;
-        }
+// Serve uploaded PDFs
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-        .language-selector {
-            display: -webkit-flex;
-            display: flex;
-            -webkit-justify-content: center;
-            justify-content: center;
-            gap: 12px;
-            margin-top: 25px;
-            -webkit-flex-wrap: wrap;
-            flex-wrap: wrap;
-        }
+// Data storage paths
+var DATA_DIR = path.join(__dirname, 'data');
+var UPLOADS_DIR = path.join(__dirname, 'uploads');
+var MENUS_FILE = path.join(DATA_DIR, 'menus.json');
+var USERS_FILE = path.join(DATA_DIR, 'users.json');
+var SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 
-        .language-selector button {
-            background: #ffffff;
-            border: 1px solid rgba(183, 154, 95, 0.3);
-            color: #666666;
-            padding: 10px 18px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            -webkit-transition: all 0.3s ease;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            min-width: 90px;
-            text-align: center;
-        }
+// Ensure directories exist
+[DATA_DIR, UPLOADS_DIR].forEach(function(dir) {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+});
 
-        .language-selector button:hover {
-            background: rgba(183, 154, 95, 0.05);
-            border-color: rgba(183, 154, 95, 0.5);
-        }
+// Menu types
+var MENU_TYPES = ['daily', 'menu', 'wine', 'beverages'];
+var LANGUAGES = ['de', 'en', 'fr', 'it'];
 
-        .language-selector button.active {
-            background: rgba(183, 154, 95, 0.1);
-            border-color: #b79a5f;
-            color: #b79a5f;
-        }
+// Create upload directories for each menu type
+MENU_TYPES.forEach(function(type) {
+    var menuDir = path.join(UPLOADS_DIR, type);
+    if (!fs.existsSync(menuDir)) {
+        fs.mkdirSync(menuDir, { recursive: true });
+    }
+});
 
-        .menu-grid {
-            display: -webkit-flex;
-            display: flex;
-            -webkit-flex-wrap: wrap;
-            flex-wrap: wrap;
-            gap: 25px;
-            margin-top: 40px;
-        }
+// Initialize data files if they don't exist
+function initializeDataFiles() {
+    // Initialize menus.json
+    if (!fs.existsSync(MENUS_FILE)) {
+        var initialMenus = {};
+        MENU_TYPES.forEach(function(type) {
+            initialMenus[type] = {
+                type: type,
+                enabled: false,
+                pdfs: {}
+            };
+        });
+        fs.writeFileSync(MENUS_FILE, JSON.stringify(initialMenus, null, 2));
+    }
 
-        .menu-card {
-            background: #ffffff;
-            border: 1px solid rgba(183, 154, 95, 0.2);
-            border-radius: 15px;
-            padding: 30px;
-            cursor: pointer;
-            -webkit-transition: all 0.3s ease;
-            transition: all 0.3s ease;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            -webkit-flex: 1 1 calc(50% - 12.5px);
-            flex: 1 1 calc(50% - 12.5px);
-            min-width: 250px;
-        }
-
-        .menu-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: -webkit-linear-gradient(135deg, rgba(183, 154, 95, 0.03) 0%, rgba(183, 154, 95, 0) 100%);
-            background: linear-gradient(135deg, rgba(183, 154, 95, 0.03) 0%, rgba(183, 154, 95, 0) 100%);
-            opacity: 0;
-            -webkit-transition: opacity 0.3s ease;
-            transition: opacity 0.3s ease;
-        }
-
-        .menu-card:active {
-            -webkit-transform: translateY(-5px);
-            transform: translateY(-5px);
-            border-color: rgba(183, 154, 95, 0.5);
-            box-shadow: 0 8px 20px rgba(183, 154, 95, 0.15);
-        }
-
-        .menu-card:active::before {
-            opacity: 1;
-        }
-
-        .menu-card.disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        .menu-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            display: block;
-        }
-
-        .menu-card h2 {
-            font-size: 1.3rem;
-            font-weight: 400;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: #b79a5f;
-            position: relative;
-            z-index: 1;
-        }
-
-        .menu-card p {
-            margin-top: 10px;
-            font-size: 0.85rem;
-            color: #666666;
-            position: relative;
-            z-index: 1;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 60px 20px;
-            color: #666666;
-            font-size: 1.1rem;
-        }
-
-        .error {
-            text-align: center;
-            padding: 60px 20px;
-            color: #d9534f;
-            font-size: 1.1rem;
-        }
-
-        /* PDF Viewer */
-        .pdf-viewer {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            background: #ffffff;
-            z-index: 1000;
-            overflow-y: scroll;
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .pdf-viewer.active {
-            display: block;
-        }
-
-        .pdf-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.98);
-            -webkit-backdrop-filter: blur(10px);
-            backdrop-filter: blur(10px);
-            padding: 10px 15px;
-            display: -webkit-flex;
-            display: flex;
-            -webkit-justify-content: space-between;
-            justify-content: space-between;
-            -webkit-align-items: center;
-            align-items: center;
-            z-index: 100;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-            border-bottom: 1px solid rgba(183, 154, 95, 0.15);
-        }
-
-        .pdf-header h3 {
-            color: #b79a5f;
-            font-size: 0.9rem;
-            font-weight: 300;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin: 0;
-            opacity: 0.9;
-        }
-
-        .close-btn {
-            background: rgba(183, 154, 95, 0.08);
-            border: 1px solid rgba(183, 154, 95, 0.25);
-            color: #b79a5f;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.2rem;
-            -webkit-transition: all 0.3s ease;
-            transition: all 0.3s ease;
-            display: -webkit-flex;
-            display: flex;
-            -webkit-align-items: center;
-            align-items: center;
-            -webkit-justify-content: center;
-            justify-content: center;
-            padding: 0;
-        }
-
-        .close-btn:active {
-            background: rgba(183, 154, 95, 0.15);
-            border-color: rgba(183, 154, 95, 0.4);
-        }
-
-        .pdf-container {
-            width: 100%;
-            padding-top: 56px;
-            background: #ffffff;
-        }
-
-        .pdf-page-wrapper {
-            width: 100%;
-            height: 100vh;
-            display: -webkit-flex;
-            display: flex;
-            -webkit-align-items: center;
-            align-items: center;
-            -webkit-justify-content: center;
-            justify-content: center;
-        }
-
-        .pdf-page {
-            max-width: 100%;
-            max-height: calc(100vh - 56px);
-            width: auto;
-            height: auto;
-            display: block;
-        }
-
-        .pdf-loading {
-            text-align: center;
-            padding: 60px 20px;
-            color: #666;
-            font-size: 1.1rem;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 15px;
+    // Initialize users.json with default admin
+    if (!fs.existsSync(USERS_FILE)) {
+        var hashedPassword = bcrypt.hashSync('admin123', 10);
+        var initialUsers = {
+            admin: {
+                email: 'admin@bellevue.com',
+                password: hashedPassword
             }
+        };
+        fs.writeFileSync(USERS_FILE, JSON.stringify(initialUsers, null, 2));
+        console.log('Created default user: admin@bellevue.com / admin123');
+        console.log('CHANGE THIS PASSWORD IMMEDIATELY!');
+    }
 
-            header {
-                padding: 30px 0;
-                margin-bottom: 30px;
-            }
+    // Initialize settings.json
+    if (!fs.existsSync(SETTINGS_FILE)) {
+        var initialSettings = {
+            restaurantName: 'Hotel Bellevue'
+        };
+        fs.writeFileSync(SETTINGS_FILE, JSON.stringify(initialSettings, null, 2));
+    }
+}
 
-            .language-selector {
-                gap: 10px;
-            }
+initializeDataFiles();
 
-            .language-selector button {
-                padding: 10px 16px;
-                font-size: 0.85rem;
-                min-width: 90px;
-            }
+// Helper functions
+function readJSON(filePath) {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
 
-            .menu-grid {
-                gap: 20px;
-                margin-top: 30px;
-            }
+function writeJSON(filePath, data) {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+}
 
-            .menu-card {
-                padding: 25px;
-                -webkit-flex: 1 1 100%;
-                flex: 1 1 100%;
-            }
+// Authentication middleware
+function authenticate(req, res, next) {
+    var authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
 
-            .menu-icon {
-                font-size: 2.5rem;
-            }
+    var token = authHeader.substring(7);
+    
+    try {
+        var decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (err) {
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+}
 
-            .menu-card h2 {
-                font-size: 1.1rem;
-                letter-spacing: 1.5px;
-            }
+// Configure multer for file uploads
+var storage = multer.diskStorage({
+    destination: function(req, file, cb) {
+        var menuType = req.body.menuType || 'daily'; // Default fallback
+        var uploadPath = path.join(UPLOADS_DIR, menuType);
+        
+        // Ensure directory exists
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        
+        cb(null, uploadPath);
+    },
+    filename: function(req, file, cb) {
+        var lang = req.body.language || 'de'; // Default fallback
+        var timestamp = Date.now();
+        cb(null, lang + '-' + timestamp + '.pdf');
+    }
+});
 
-            .menu-card p {
-                font-size: 0.8rem;
-            }
+var upload = multer({
+    storage: storage,
+    fileFilter: function(req, file, cb) {
+        if (file.mimetype === 'application/pdf') {
+            cb(null, true);
+        } else {
+            cb(new Error('Only PDF files allowed'), false);
+        }
+    },
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB limit
+    }
+});
 
-            .pdf-header {
-                padding: 12px 15px;
-            }
+// ============================================
+// ROUTES
+// ============================================
 
-            .pdf-header h3 {
-                font-size: 0.8rem;
-            }
+// Health check
+app.get('/api/health', function(req, res) {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
-            .close-btn {
-                width: 32px;
-                height: 32px;
-                font-size: 1.1rem;
-            }
+// Login
+app.post('/api/login', function(req, res) {
+    var email = req.body.email;
+    var password = req.body.password;
+
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password required' });
+    }
+
+    var users = readJSON(USERS_FILE);
+    var user = null;
+    
+    Object.keys(users).forEach(function(username) {
+        if (users[username].email === email) {
+            user = users[username];
+        }
+    });
+
+    if (!user) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    var isValid = bcrypt.compareSync(password, user.password);
+    
+    if (!isValid) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    var token = jwt.sign({ email: email }, JWT_SECRET, { expiresIn: '24h' });
+    
+    res.json({ token: token, email: email });
+});
+
+// Get all menus (public)
+app.get('/api/menus', function(req, res) {
+    try {
+        var menus = readJSON(MENUS_FILE);
+        res.json(menus);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load menus' });
+    }
+});
+
+// Get specific menu PDF URL (public)
+app.get('/api/menus/:type/:lang', function(req, res) {
+    var type = req.params.type;
+    var lang = req.params.lang;
+
+    if (MENU_TYPES.indexOf(type) === -1 || LANGUAGES.indexOf(lang) === -1) {
+        return res.status(400).json({ error: 'Invalid menu type or language' });
+    }
+
+    try {
+        var menus = readJSON(MENUS_FILE);
+        var menu = menus[type];
+        
+        if (!menu || !menu.enabled) {
+            return res.status(404).json({ error: 'Menu not available' });
         }
 
-        @media (max-width: 480px) {
-            .language-selector button {
-                padding: 8px 14px;
-                font-size: 0.75rem;
-                min-width: 75px;
-            }
-
-            .menu-icon {
-                font-size: 2rem;
-            }
-
-            .pdf-header h3 {
-                font-size: 0.75rem;
-            }
-
-            .close-btn {
-                width: 30px;
-                height: 30px;
-                font-size: 1rem;
-            }
+        var pdf = menu.pdfs[lang];
+        
+        if (!pdf) {
+            return res.status(404).json({ error: 'PDF not found for this language' });
         }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <img src="/bellevue-logo.png" alt="Bellevue" class="logo" id="logo">
-            <div class="language-selector">
-                <button onclick="changeLanguage('de')" class="lang-btn active" data-lang="de">Deutsch</button>
-                <button onclick="changeLanguage('en')" class="lang-btn" data-lang="en">English</button>
-                <button onclick="changeLanguage('fr')" class="lang-btn" data-lang="fr">Français</button>
-                <button onclick="changeLanguage('it')" class="lang-btn" data-lang="it">Italiano</button>
-            </div>
-        </header>
 
-        <div id="menuContainer">
-            <div class="loading">Loading menus...</div>
-        </div>
-    </div>
+        res.json(pdf);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load menu' });
+    }
+});
 
-    <div id="pdfViewer" class="pdf-viewer">
-        <div class="pdf-header">
-            <h3 id="pdfTitle"></h3>
-            <button class="close-btn" onclick="closePDF()">←</button>
-        </div>
-        <div class="pdf-container" id="pdfContainer">
-            <div class="pdf-loading">Loading PDF...</div>
-        </div>
-    </div>
+// Upload menu PDF (authenticated) - stores as base64
+app.post('/api/menus/upload', authenticate, function(req, res) {
+    var uploadHandler = upload.fields([{ name: 'pdf', maxCount: 1 }]);
+    
+    uploadHandler(req, res, function(err) {
+        if (err) {
+            console.error('Upload error:', err);
+            return res.status(400).json({ error: err.message });
+        }
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
-    <script>
-        // Legacy ES5 JavaScript for iOS 9+
-        (function() {
-            'use strict';
+        var menuType = req.body.menuType;
+        var language = req.body.language;
 
-            // Configuration
-            var API_URL = window.location.origin + '/api';
-            var currentLanguage = 'de';
-            var currentPdfDoc = null;
+        if (!menuType || !language) {
+            return res.status(400).json({ error: 'Menu type and language required' });
+        }
 
-            // Translations
-            var translations = {
-                de: {
-                    daily: 'Tageskarte',
-                    dailyDesc: 'Heutige Spezialitäten',
-                    menu: 'Menü',
-                    menuDesc: 'Vollständige Speisekarte',
-                    wine: 'Weinkarte',
-                    wineDesc: 'Erlesene Weine',
-                    beverages: 'Getränke & Biere',
-                    beveragesDesc: 'Getränkeauswahl'
-                },
-                en: {
-                    daily: 'Daily Menu',
-                    dailyDesc: "Today's Specials",
-                    menu: 'Main Menu',
-                    menuDesc: 'Full Menu',
-                    wine: 'Wine List',
-                    wineDesc: 'Wine Selection',
-                    beverages: 'Beverages & Beers',
-                    beveragesDesc: 'Drink Selection'
-                },
-                fr: {
-                    daily: 'Menu du Jour',
-                    dailyDesc: 'Spécialités du jour',
-                    menu: 'Menu Principal',
-                    menuDesc: 'Menu complet',
-                    wine: 'Carte des Vins',
-                    wineDesc: 'Sélection de vins',
-                    beverages: 'Boissons & Bières',
-                    beveragesDesc: 'Sélection de boissons'
-                },
-                it: {
-                    daily: 'Menu del Giorno',
-                    dailyDesc: 'Specialità del giorno',
-                    menu: 'Menu Principale',
-                    menuDesc: 'Menu completo',
-                    wine: 'Carta dei Vini',
-                    wineDesc: 'Selezione di vini',
-                    beverages: 'Bevande & Birre',
-                    beveragesDesc: 'Selezione di bevande'
-                }
+        if (MENU_TYPES.indexOf(menuType) === -1 || LANGUAGES.indexOf(language) === -1) {
+            return res.status(400).json({ error: 'Invalid menu type or language' });
+        }
+
+        if (!req.files || !req.files.pdf || !req.files.pdf[0]) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        var uploadedFile = req.files.pdf[0];
+        
+        // Check file size (max 5MB for base64 storage)
+        if (uploadedFile.size > 5 * 1024 * 1024) {
+            fs.unlinkSync(uploadedFile.path);
+            return res.status(400).json({ error: 'PDF too large. Maximum 5MB.' });
+        }
+
+        try {
+            // Read PDF and convert to base64
+            var pdfBuffer = fs.readFileSync(uploadedFile.path);
+            var base64Data = pdfBuffer.toString('base64');
+            
+            // Delete temp file
+            fs.unlinkSync(uploadedFile.path);
+            
+            var menus = readJSON(MENUS_FILE);
+            
+            // Save base64 data
+            menus[menuType].pdfs[language] = {
+                fileName: uploadedFile.originalname,
+                base64: base64Data,
+                size: uploadedFile.size,
+                uploadedAt: new Date().toISOString()
             };
 
-            var menuConfig = [
-                { id: 'daily', icon: '🍽️', key: 'daily', descKey: 'dailyDesc' },
-                { id: 'menu', icon: '📋', key: 'menu', descKey: 'menuDesc' },
-                { id: 'wine', icon: '🍷', key: 'wine', descKey: 'wineDesc' },
-                { id: 'beverages', icon: '🍺', key: 'beverages', descKey: 'beveragesDesc' }
-            ];
+            writeJSON(MENUS_FILE, menus);
 
-            // Initialize PDF.js
-            if (typeof pdfjsLib !== 'undefined') {
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js';
-            }
+            console.log('PDF uploaded and stored as base64:', menuType, language, uploadedFile.originalname);
 
-            // Change language
-            window.changeLanguage = function(lang) {
-                currentLanguage = lang;
-                
-                var buttons = document.querySelectorAll('.lang-btn');
-                for (var i = 0; i < buttons.length; i++) {
-                    var btn = buttons[i];
-                    if (btn.getAttribute('data-lang') === lang) {
-                        btn.className = 'lang-btn active';
-                    } else {
-                        btn.className = 'lang-btn';
-                    }
-                }
-                
-                renderMenus();
-            };
-
-            // Fetch menus from API
-            function fetchMenus() {
-                var xhr = new XMLHttpRequest();
-                xhr.open('GET', API_URL + '/menus', true);
-                
-                xhr.onload = function() {
-                    if (xhr.status === 200) {
-                        try {
-                            var menus = JSON.parse(xhr.responseText);
-                            renderMenus(menus);
-                        } catch (e) {
-                            showError('Failed to parse menu data');
-                        }
-                    } else {
-                        showError('Failed to load menus');
-                    }
-                };
-                
-                xhr.onerror = function() {
-                    showError('Network error');
-                };
-                
-                xhr.send();
-            }
-
-            // Render menu cards
-            function renderMenus(menusData) {
-                var container = document.getElementById('menuContainer');
-                
-                if (!menusData) {
-                    fetchMenus();
-                    return;
-                }
-                
-                var html = '<div class="menu-grid">';
-                
-                for (var i = 0; i < menuConfig.length; i++) {
-                    var config = menuConfig[i];
-                    var menuData = menusData[config.id];
-                    var isEnabled = menuData && menuData.enabled;
-                    var hasPDF = menuData && menuData.pdfs && menuData.pdfs[currentLanguage];
-                    var disabledClass = (!isEnabled || !hasPDF) ? 'disabled' : '';
-                    
-                    html += '<div class="menu-card ' + disabledClass + '" onclick="openMenu(\'' + config.id + '\')">';
-                    html += '<span class="menu-icon">' + config.icon + '</span>';
-                    html += '<h2>' + translations[currentLanguage][config.key] + '</h2>';
-                    html += '<p>' + translations[currentLanguage][config.descKey] + '</p>';
-                    html += '</div>';
-                }
-                
-                html += '</div>';
-                container.innerHTML = html;
-            }
-
-            // Open menu PDF
-            window.openMenu = function(menuType) {
-                var xhr = new XMLHttpRequest();
-                xhr.open('GET', API_URL + '/menus/' + menuType + '/' + currentLanguage, true);
-                
-                xhr.onload = function() {
-                    if (xhr.status === 200) {
-                        try {
-                            var data = JSON.parse(xhr.responseText);
-                            displayPDF(data, translations[currentLanguage][menuType]);
-                        } catch (e) {
-                            alert('Failed to load menu');
-                        }
-                    } else {
-                        alert('Menu not available');
-                    }
-                };
-                
-                xhr.onerror = function() {
-                    alert('Network error');
-                };
-                
-                xhr.send();
-            };
-
-            // Display PDF
-            function displayPDF(pdfData, title) {
-                var viewer = document.getElementById('pdfViewer');
-                var titleEl = document.getElementById('pdfTitle');
-                var container = document.getElementById('pdfContainer');
-                
-                titleEl.textContent = title;
-                viewer.className = 'pdf-viewer active';
-                container.innerHTML = '<div class="pdf-loading">Loading PDF...</div>';
-                
-                // Convert base64 to blob and create object URL
-                var base64Data = pdfData.base64;
-                var binaryString = window.atob(base64Data);
-                var bytes = new Uint8Array(binaryString.length);
-                for (var i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
-                var blob = new Blob([bytes], { type: 'application/pdf' });
-                var blobUrl = URL.createObjectURL(blob);
-                
-                // Display in iframe
-                container.innerHTML = '<iframe src="' + blobUrl + '" style="width:100%;height:calc(100vh - 56px);border:none;"></iframe>';
-            }
-
-            // Render PDF using PDF.js
-            function renderPDF(url, container) {
-                if (typeof pdfjsLib === 'undefined') {
-                    container.innerHTML = '<iframe src="' + url + '" style="width:100%;height:calc(100vh - 56px);border:none;"></iframe>';
-                    return;
-                }
-                
-                var loadingTask = pdfjsLib.getDocument(url);
-                
-                loadingTask.promise.then(function(pdf) {
-                    currentPdfDoc = pdf;
-                    container.innerHTML = '';
-                    
-                    var viewportHeight = window.innerHeight - 56;
-                    
-                    function renderPage(pageNum) {
-                        pdf.getPage(pageNum).then(function(page) {
-                            var viewport = page.getViewport({ scale: 1 });
-                            var scale = Math.min(
-                                (window.innerWidth * (window.devicePixelRatio || 1)) / viewport.width,
-                                (viewportHeight * (window.devicePixelRatio || 1)) / viewport.height
-                            );
-                            var scaledViewport = page.getViewport({ scale: scale });
-                            
-                            var wrapper = document.createElement('div');
-                            wrapper.className = 'pdf-page-wrapper';
-                            
-                            var canvas = document.createElement('canvas');
-                            canvas.className = 'pdf-page';
-                            var context = canvas.getContext('2d');
-                            
-                            canvas.height = scaledViewport.height;
-                            canvas.width = scaledViewport.width;
-                            
-                            var pixelRatio = window.devicePixelRatio || 1;
-                            canvas.style.width = (scaledViewport.width / pixelRatio) + 'px';
-                            canvas.style.height = (scaledViewport.height / pixelRatio) + 'px';
-                            
-                            wrapper.appendChild(canvas);
-                            container.appendChild(wrapper);
-                            
-                            var renderContext = {
-                                canvasContext: context,
-                                viewport: scaledViewport
-                            };
-                            
-                            page.render(renderContext).promise.then(function() {
-                                if (pageNum < pdf.numPages) {
-                                    renderPage(pageNum + 1);
-                                }
-                            });
-                        });
-                    }
-                    
-                    renderPage(1);
-                }).catch(function(error) {
-                    console.error('PDF loading error:', error);
-                    container.innerHTML = '<div class="error">Failed to load PDF</div>';
-                });
-            }
-
-            // Close PDF viewer
-            window.closePDF = function() {
-                var viewer = document.getElementById('pdfViewer');
-                viewer.className = 'pdf-viewer';
-                currentPdfDoc = null;
-            };
-
-            // Show error
-            function showError(message) {
-                var container = document.getElementById('menuContainer');
-                container.innerHTML = '<div class="error">' + message + '</div>';
-            }
-
-            // Initialize on load
-            window.addEventListener('load', function() {
-                fetchMenus();
+            res.json({
+                success: true,
+                message: 'PDF uploaded successfully'
             });
-        })();
-    </script>
-</body>
-</html>
+        } catch (err) {
+            console.error('Upload error:', err);
+            // Clean up temp file if it exists
+            if (fs.existsSync(uploadedFile.path)) {
+                fs.unlinkSync(uploadedFile.path);
+            }
+            res.status(500).json({ error: 'Failed to save menu' });
+        }
+    });
+});
+
+// Toggle menu enabled status (authenticated)
+app.post('/api/menus/:type/toggle', authenticate, function(req, res) {
+    var type = req.params.type;
+    var enabled = req.body.enabled;
+
+    if (MENU_TYPES.indexOf(type) === -1) {
+        return res.status(400).json({ error: 'Invalid menu type' });
+    }
+
+    if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: 'Enabled must be boolean' });
+    }
+
+    try {
+        var menus = readJSON(MENUS_FILE);
+        menus[type].enabled = enabled;
+        writeJSON(MENUS_FILE, menus);
+
+        res.json({ success: true, enabled: enabled });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to update menu status' });
+    }
+});
+
+// Reset all menu data (authenticated) - for debugging
+app.post('/api/menus/reset-all', authenticate, function(req, res) {
+    try {
+        var initialMenus = {};
+        MENU_TYPES.forEach(function(type) {
+            initialMenus[type] = {
+                type: type,
+                enabled: false,
+                pdfs: {}
+            };
+        });
+        writeJSON(MENUS_FILE, initialMenus);
+        
+        res.json({ success: true, message: 'All menu data reset' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to reset data' });
+    }
+});
+
+// Get settings (public)
+app.get('/api/settings', function(req, res) {
+    try {
+        var settings = readJSON(SETTINGS_FILE);
+        res.json(settings);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to load settings' });
+    }
+});
+
+// Update settings (authenticated)
+app.post('/api/settings', authenticate, function(req, res) {
+    var restaurantName = req.body.restaurantName;
+
+    if (!restaurantName) {
+        return res.status(400).json({ error: 'Restaurant name required' });
+    }
+
+    try {
+        var settings = readJSON(SETTINGS_FILE);
+        settings.restaurantName = restaurantName;
+        writeJSON(SETTINGS_FILE, settings);
+
+        res.json({ success: true, settings: settings });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to update settings' });
+    }
+});
+
+// Start server
+app.listen(PORT, function() {
+    console.log('===========================================');
+    console.log('Bellevue Menu System - Legacy Server');
+    console.log('===========================================');
+    console.log('Server running on port:', PORT);
+    console.log('Environment:', process.env.NODE_ENV || 'development');
+    console.log('Default credentials: admin@bellevue.com / admin123');
+    console.log('CHANGE PASSWORD IMMEDIATELY!');
+    console.log('===========================================');
+});
+
+module.exports = app;
