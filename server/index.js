@@ -301,6 +301,14 @@ app.post('/api/menus/upload', authenticate, function(req, res) {
             // Construct public delivery URL for raw files
             var cloudName = process.env.CLOUDINARY_CLOUD_NAME;
             var deliveryUrl = 'https://res.cloudinary.com/' + cloudName + '/raw/upload/' + result.public_id + '.pdf';
+            
+            console.log('===================');
+            console.log('UPLOAD SUCCESS DEBUG:');
+            console.log('Cloud Name:', cloudName);
+            console.log('Public ID:', result.public_id);
+            console.log('Delivery URL:', deliveryUrl);
+            console.log('Secure URL:', result.secure_url);
+            console.log('===================');
 
             // Save new PDF info with Cloudinary URL
             menus[menuType].pdfs[language] = {
