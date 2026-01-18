@@ -278,8 +278,8 @@ app.post('/api/menus/upload', authenticate, function(req, res) {
             });
         }
 
-        // Upload to Cloudinary
-        var publicId = 'bellevue-menus/' + menuType + '/' + language + '-' + Date.now();
+        // Upload to Cloudinary - use simple public_id without folders
+        var publicId = menuType + '-' + language + '-' + Date.now();
         
         cloudinary.uploader.upload(uploadedFile.path, {
             resource_type: 'raw',
