@@ -539,7 +539,7 @@
                     if (xhr.status === 200) {
                         try {
                             var data = JSON.parse(xhr.responseText);
-                            displayPDF(data.url, translations[currentLanguage][menuType]);
+                            displayPDF(data, translations[currentLanguage][menuType]);
                         } catch (e) {
                             alert('Failed to load menu');
                         }
@@ -556,7 +556,7 @@
             };
 
             // Display PDF
-            function displayPDF(pdfUrl, title) {
+            function displayPDF(pdfData, title) {
                 var viewer = document.getElementById('pdfViewer');
                 var titleEl = document.getElementById('pdfTitle');
                 var container = document.getElementById('pdfContainer');
@@ -565,14 +565,18 @@
                 viewer.className = 'pdf-viewer active';
                 container.innerHTML = '<div class="pdf-loading">Loading PDF...</div>';
                 
-                // Check if URL is already complete (Cloudinary) or relative (local)
-                var fullUrl = pdfUrl;
-                if (pdfUrl.indexOf('http') !== 0) {
-                    fullUrl = window.location.origin + pdfUrl;
+                // Convert base64 to blob and create object URL
+                var base64Data = pdfData.base64;
+                var binaryString = window.atob(base64Data);
+                var bytes = new Uint8Array(binaryString.length);
+                for (var i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
                 }
+                var blob = new Blob([bytes], { type: 'application/pdf' });
+                var blobUrl = URL.createObjectURL(blob);
                 
-                // Use iframe for better compatibility with Cloudinary
-                container.innerHTML = '<iframe src="' + fullUrl + '" style="width:100%;height:calc(100vh - 56px);border:none;"></iframe>';
+                // Display in iframe
+                container.innerHTML = '<iframe src="' + blobUrl + '" style="width:100%;height:calc(100vh - 56px);border:none;"></iframe>';
             }
 
             // Render PDF using PDF.js
