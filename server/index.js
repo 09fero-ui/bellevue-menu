@@ -269,7 +269,7 @@ app.post('/api/menus/upload', authenticate, function(req, res) {
 
         // Delete old PDF from Cloudinary if exists
         if (menus[menuType].pdfs[language] && menus[menuType].pdfs[language].publicId) {
-            cloudinary.uploader.destroy(menus[menuType].pdfs[language].publicId, { resource_type: 'raw' }, function(error, result) {
+            cloudinary.uploader.destroy(menus[menuType].pdfs[language].publicId, { resource_type: 'image' }, function(error, result) {
                 if (error) {
                     console.log('Error deleting old PDF from Cloudinary:', error);
                 } else {
@@ -282,11 +282,9 @@ app.post('/api/menus/upload', authenticate, function(req, res) {
         var publicId = menuType + '-' + language + '-' + Date.now();
         
         cloudinary.uploader.upload(uploadedFile.path, {
-            resource_type: 'raw',
+            resource_type: 'image',
             public_id: publicId,
-            format: 'pdf',
-            access_mode: 'public',
-            type: 'upload'
+            format: 'pdf'
         }, function(error, result) {
             // Delete temp file
             if (fs.existsSync(uploadedFile.path)) {
