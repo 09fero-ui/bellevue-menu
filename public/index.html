@@ -840,28 +840,35 @@
             // Fetch menus from API
             function fetchMenus() {
                 var container = document.getElementById('menuContainer');
-                container.innerHTML = '<div class="loading">Loading menus...</div>';
+                container.innerHTML = '<div class="loading">Fetching menus from server...</div>';
                 
                 var xhr = new XMLHttpRequest();
                 xhr.open('GET', API_URL + '/menus', true);
                 
                 xhr.onload = function() {
                     if (xhr.status === 200) {
+                        container.innerHTML = '<div class="loading">Processing menu data...</div>';
                         try {
                             var menus = JSON.parse(xhr.responseText);
+                            container.innerHTML = '<div class="loading">Rendering menus...</div>';
                             renderMenus(menus);
                         } catch (e) {
-                            showError('Failed to parse menu data: ' + e.message);
+                            showError('Parse error: ' + e.message);
                         }
                     } else {
-                        showError('Failed to load menus (HTTP ' + xhr.status + ')');
+                        showError('Server error: HTTP ' + xhr.status);
                     }
                 };
                 
                 xhr.onerror = function() {
-                    showError('Network error - check connection');
+                    showError('Network error - cannot reach server');
                 };
                 
+                xhr.ontimeout = function() {
+                    showError('Request timed out');
+                };
+                
+                xhr.timeout = 10000; // 10 second timeout
                 xhr.send();
             }
 
@@ -870,9 +877,11 @@
                 var container = document.getElementById('menuContainer');
                 
                 if (!menusData) {
-                    showError('No menu data available');
+                    showError('No menu data received from server');
                     return;
                 }
+                
+                container.innerHTML = '<div class="loading">Building menu display...</div>';
                 
                 var html = '<div class="menu-grid">';
                 
@@ -895,7 +904,11 @@
                 }
                 
                 html += '</div>';
-                container.innerHTML = html;
+                
+                // Small delay to show the "Building" message
+                setTimeout(function() {
+                    container.innerHTML = html;
+                }, 50);
             }
 
             // Open menu PDF
@@ -1187,7 +1200,13 @@
 
             // Initialize on load
             window.addEventListener('load', function() {
-                fetchMenus();
+                var container = document.getElementById('menuContainer');
+                container.innerHTML = '<div class="loading">Initializing...</div>';
+                
+                // Test if this code even runs
+                setTimeout(function() {
+                    fetchMenus();
+                }, 100);
             });
         })();
     </script>
