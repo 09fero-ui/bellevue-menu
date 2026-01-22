@@ -77,6 +77,35 @@
             font-size: 0.9rem;
         }
 
+        .language-selector {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .lang-btn {
+            background: white;
+            border: 2px solid #ddd;
+            color: #333;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .lang-btn.active {
+            background: #b79a5f;
+            border-color: #b79a5f;
+            color: white;
+        }
+
+        .lang-btn:active {
+            transform: scale(0.95);
+        }
+
         .menu-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -350,6 +379,13 @@
                 </div>
                 <span>›</span>
             </div>
+
+            <div class="language-selector">
+                <button onclick="changeLanguage('de')" class="lang-btn active" id="lang-de">Deutsch</button>
+                <button onclick="changeLanguage('en')" class="lang-btn" id="lang-en">English</button>
+                <button onclick="changeLanguage('fr')" class="lang-btn" id="lang-fr">Français</button>
+                <button onclick="changeLanguage('it')" class="lang-btn" id="lang-it">Italiano</button>
+            </div>
         </header>
 
         <div id="menuContainer">
@@ -383,9 +419,25 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
     <script>
         var API_URL = window.location.origin + '/api';
-        var APP_VERSION = '1.1.0'; // Must match server version
+        var APP_VERSION = '1.1.1'; // Must match server version
+        var currentLanguage = 'de';
         var currentPDFPage = 1;
         var totalPDFPages = 1;
+        
+        // Menu translations
+        var menuNames = {
+            de: { daily: 'Tageskarte', menu: 'Menü', wine: 'Weinkarte', beverages: 'Getränke' },
+            en: { daily: 'Daily Menu', menu: 'Menu', wine: 'Wine List', beverages: 'Beverages' },
+            fr: { daily: 'Menu du Jour', menu: 'Menu', wine: 'Carte des Vins', beverages: 'Boissons' },
+            it: { daily: 'Menu del Giorno', menu: 'Menu', wine: 'Carta dei Vini', beverages: 'Bevande' }
+        };
+        
+        var menuDescriptions = {
+            de: { daily: 'Heutige Spezialitäten', menu: 'Vollständige Speisekarte', wine: 'Erlesene Weine', beverages: 'Getränkeauswahl' },
+            en: { daily: "Today's Specials", menu: 'Complete Menu', wine: 'Fine Wines', beverages: 'Drink Selection' },
+            fr: { daily: 'Spécialités du Jour', menu: 'Menu Complet', wine: 'Vins Fins', beverages: 'Sélection de Boissons' },
+            it: { daily: 'Specialità del Giorno', menu: 'Menu Completo', wine: 'Vini Pregiati', beverages: 'Selezione di Bevande' }
+        };
         
         // Check for updates on app open
         function checkVersion() {
@@ -458,23 +510,23 @@
             var html = '<div class="menu-grid">';
             
             var menus = [
-                { id: 'daily', icon: '🍽️', name: 'Tageskarte', desc: 'Heutige Spezialitäten' },
-                { id: 'menu', icon: '📋', name: 'Menü', desc: 'Vollständige Speisekarte' },
-                { id: 'wine', icon: '🍷', name: 'Weinkarte', desc: 'Erlesene Weine' },
-                { id: 'beverages', icon: '🍺', name: 'Getränke', desc: 'Getränkeauswahl' }
+                { id: 'daily', icon: '🍽️' },
+                { id: 'menu', icon: '📋' },
+                { id: 'wine', icon: '🍷' },
+                { id: 'beverages', icon: '🍺' }
             ];
             
             for (var i = 0; i < menus.length; i++) {
                 var menu = menus[i];
                 var menuData = data[menu.id];
                 var enabled = menuData && menuData.enabled;
-                var hasPDF = menuData && menuData.pdfs && menuData.pdfs.de;
+                var hasPDF = menuData && menuData.pdfs && menuData.pdfs[currentLanguage];
                 var disabled = (!enabled || !hasPDF) ? 'disabled' : '';
                 
                 html += '<div class="menu-card ' + disabled + '" onclick="openMenu(\'' + menu.id + '\')">';
                 html += '<span class="menu-icon">' + menu.icon + '</span>';
-                html += '<h2>' + menu.name + '</h2>';
-                html += '<p>' + menu.desc + '</p>';
+                html += '<h2>' + menuNames[currentLanguage][menu.id] + '</h2>';
+                html += '<p>' + menuDescriptions[currentLanguage][menu.id] + '</p>';
                 html += '</div>';
             }
             
@@ -482,10 +534,25 @@
             container.innerHTML = html;
         }
         
+        // Change language
+        function changeLanguage(lang) {
+            currentLanguage = lang;
+            
+            // Update button states
+            var buttons = document.querySelectorAll('.lang-btn');
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].className = 'lang-btn';
+            }
+            document.getElementById('lang-' + lang).className = 'lang-btn active';
+            
+            // Reload menus
+            loadMenus();
+        }
+        
         // Open menu (load PDF)
         function openMenu(id) {
             var xhr = new XMLHttpRequest();
-            xhr.open('GET', API_URL + '/menus/' + id + '/de', true);
+            xhr.open('GET', API_URL + '/menus/' + id + '/' + currentLanguage, true);
             
             xhr.onload = function() {
                 if (xhr.status === 200) {
