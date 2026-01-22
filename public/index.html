@@ -5,9 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Menu">
+    <meta name="apple-mobile-web-app-title" content="Bellevue">
     <title>Restaurant Menu - Bellevue</title>
-    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="apple-touch-icon" href="/logo.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/logo.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/logo.png">
     <style>
         * {
             margin: 0;
@@ -836,24 +839,33 @@
 
             // Fetch menus from API
             function fetchMenus() {
+                var container = document.getElementById('menuContainer');
+                container.innerHTML = '<div class="loading">Loading menus...</div>';
+                
                 var xhr = new XMLHttpRequest();
                 xhr.open('GET', API_URL + '/menus', true);
                 
                 xhr.onload = function() {
+                    console.log('XHR status:', xhr.status);
                     if (xhr.status === 200) {
                         try {
+                            console.log('Response length:', xhr.responseText.length);
                             var menus = JSON.parse(xhr.responseText);
+                            console.log('Menus parsed successfully');
                             renderMenus(menus);
                         } catch (e) {
-                            showError('Failed to parse menu data');
+                            console.error('Parse error:', e);
+                            showError('Failed to parse menu data: ' + e.message);
                         }
                     } else {
-                        showError('Failed to load menus');
+                        console.error('HTTP error:', xhr.status);
+                        showError('Failed to load menus (HTTP ' + xhr.status + ')');
                     }
                 };
                 
                 xhr.onerror = function() {
-                    showError('Network error');
+                    console.error('Network error');
+                    showError('Network error - check connection');
                 };
                 
                 xhr.send();
@@ -861,10 +873,12 @@
 
             // Render menu cards
             function renderMenus(menusData) {
+                console.log('renderMenus called with:', menusData);
                 var container = document.getElementById('menuContainer');
                 
                 if (!menusData) {
-                    fetchMenus();
+                    console.error('No menu data received');
+                    showError('No menu data available');
                     return;
                 }
                 
@@ -875,6 +889,8 @@
                     var menuData = menusData[config.id];
                     var isEnabled = menuData && menuData.enabled;
                     var hasPDF = menuData && menuData.pdfs && menuData.pdfs[currentLanguage];
+                    
+                    console.log('Menu:', config.id, 'Enabled:', isEnabled, 'HasPDF:', !!hasPDF);
                     var disabledClass = (!isEnabled || !hasPDF) ? 'disabled' : '';
                     
                     html += '<div class="menu-card ' + disabledClass + '" onclick="openMenu(\'' + config.id + '\')">';
