@@ -1199,25 +1199,23 @@
             }
 
             // Initialize immediately when script loads
-            (function() {
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', function() {
-                        init();
-                    });
-                } else {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
                     init();
+                });
+            } else {
+                init();
+            }
+            
+            function init() {
+                var container = document.getElementById('menuContainer');
+                if (container) {
+                    container.innerHTML = '<div class="loading">Initializing...</div>';
+                    setTimeout(function() {
+                        fetchMenus();
+                    }, 100);
                 }
-                
-                function init() {
-                    var container = document.getElementById('menuContainer');
-                    if (container) {
-                        container.innerHTML = '<div class="loading">Initializing...</div>';
-                        setTimeout(function() {
-                            fetchMenus();
-                        }, 100);
-                    }
-                }
-            })();
+            }
         })();
     </script>
 </body>
