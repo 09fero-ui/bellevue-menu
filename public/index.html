@@ -970,13 +970,15 @@
                                 // Swipe left - next page
                                 if (currentPage < pdf.numPages - 1) {
                                     currentPage++;
-                                    container.scrollLeft = currentPage * containerWidth;
+                                    var scrollTarget = currentPage * containerWidth;
+                                    container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
                                 }
                             } else {
                                 // Swipe right - previous page
                                 if (currentPage > 0) {
                                     currentPage--;
-                                    container.scrollLeft = currentPage * containerWidth;
+                                    var scrollTarget = currentPage * containerWidth;
+                                    container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
                                 }
                             }
                         }
@@ -986,10 +988,10 @@
                         pdf.getPage(pageNum).then(function(page) {
                             var viewport = page.getViewport({ scale: 1 });
                             
-                            // Calculate scale to FILL screen (not just fit)
+                            // Calculate scale to fit page properly
                             var scaleWidth = containerWidth / viewport.width;
                             var scaleHeight = containerHeight / viewport.height;
-                            var scale = Math.max(scaleWidth, scaleHeight); // Use max to fill, not min
+                            var scale = Math.min(scaleWidth, scaleHeight) * 0.95; // Fit with 95% to avoid overflow
                             
                             var scaledViewport = page.getViewport({ scale: scale });
                             
