@@ -846,25 +846,19 @@
                 xhr.open('GET', API_URL + '/menus', true);
                 
                 xhr.onload = function() {
-                    
                     if (xhr.status === 200) {
                         try {
-                            
                             var menus = JSON.parse(xhr.responseText);
-                            
                             renderMenus(menus);
                         } catch (e) {
-                            
                             showError('Failed to parse menu data: ' + e.message);
                         }
                     } else {
-                        
                         showError('Failed to load menus (HTTP ' + xhr.status + ')');
                     }
                 };
                 
                 xhr.onerror = function() {
-                    
                     showError('Network error - check connection');
                 };
                 
@@ -873,11 +867,9 @@
 
             // Render menu cards
             function renderMenus(menusData) {
-                
                 var container = document.getElementById('menuContainer');
                 
                 if (!menusData) {
-                    
                     showError('No menu data available');
                     return;
                 }
@@ -888,7 +880,10 @@
                     var config = menuConfig[i];
                     var menuData = menusData[config.id];
                     var isEnabled = menuData && menuData.enabled;
-                    var hasPDF = menuData && menuData.pdfs && menuData.pdfs[currentLanguage] && menuData.pdfs[currentLanguage].available;
+                    
+                    // Check if PDF exists - support both old and new format
+                    var pdfData = menuData && menuData.pdfs && menuData.pdfs[currentLanguage];
+                    var hasPDF = pdfData && (pdfData.available || pdfData.base64 || pdfData.fileName);
                     
                     var disabledClass = (!isEnabled || !hasPDF) ? 'disabled' : '';
                     
@@ -1057,7 +1052,6 @@
                     
                     renderPage(1);
                 }).catch(function(error) {
-                    
                     container.innerHTML = '<div class="pdf-loading">Failed to load PDF</div>';
                 });
             }
@@ -1118,7 +1112,6 @@
                     
                     renderPage(1);
                 }).catch(function(error) {
-                    
                     container.innerHTML = '<div class="error">Failed to load PDF</div>';
                 });
             }
