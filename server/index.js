@@ -195,7 +195,26 @@ app.post('/api/login', function(req, res) {
 app.get('/api/menus', function(req, res) {
     try {
         var menus = readJSON(MENUS_FILE);
-        res.json(menus);
+        
+        // Remove base64 data to reduce response size for old devices
+        var lightMenus = {};
+        for (var menuType in menus) {
+            lightMenus[menuType] = {
+                enabled: menus[menuType].enabled,
+                pdfs: {}
+            };
+            
+            // Only send metadata, not base64 content
+            for (var lang in menus[menuType].pdfs) {
+                lightMenus[menuType].pdfs[lang] = {
+                    fileName: menus[menuType].pdfs[lang].fileName,
+                    uploadedAt: menus[menuType].pdfs[lang].uploadedAt,
+                    available: true
+                };
+            }
+        }
+        
+        res.json(lightMenus);
     } catch (err) {
         res.status(500).json({ error: 'Failed to load menus' });
     }
