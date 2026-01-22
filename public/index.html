@@ -356,10 +356,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
     <script>
         var API_URL = window.location.origin + '/api';
-        var APP_VERSION = '1.0.7'; // Must match server version
+        var APP_VERSION = '1.0.8'; // Must match server version
         
         // Check for updates on app open
         function checkVersion() {
+            // Only check once per session
+            if (sessionStorage.getItem('versionChecked')) {
+                return;
+            }
+            sessionStorage.setItem('versionChecked', 'true');
+            
             var xhr = new XMLHttpRequest();
             xhr.open('GET', API_URL + '/version?t=' + Date.now(), true); // Cache buster
             
@@ -369,6 +375,7 @@
                         var data = JSON.parse(xhr.responseText);
                         if (data.version !== APP_VERSION) {
                             // New version available - force reload
+                            sessionStorage.removeItem('versionChecked');
                             window.location.reload(true);
                         }
                     } catch (e) {
