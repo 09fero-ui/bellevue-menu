@@ -12,7 +12,7 @@ var cors = require('cors');
 var app = express();
 var PORT = process.env.PORT || 3000;
 var JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production';
-var APP_VERSION = '2.0.1'; // Increment this when you update the app
+var APP_VERSION = '2.1.0'; // Increment this when you update the app
 
 // Middleware
 app.use(cors());
