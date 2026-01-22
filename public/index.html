@@ -846,25 +846,25 @@
                 xhr.open('GET', API_URL + '/menus', true);
                 
                 xhr.onload = function() {
-                    console.log('XHR status:', xhr.status);
+                    
                     if (xhr.status === 200) {
                         try {
-                            console.log('Response length:', xhr.responseText.length);
+                            
                             var menus = JSON.parse(xhr.responseText);
-                            console.log('Menus parsed successfully');
+                            
                             renderMenus(menus);
                         } catch (e) {
-                            console.error('Parse error:', e);
+                            
                             showError('Failed to parse menu data: ' + e.message);
                         }
                     } else {
-                        console.error('HTTP error:', xhr.status);
+                        
                         showError('Failed to load menus (HTTP ' + xhr.status + ')');
                     }
                 };
                 
                 xhr.onerror = function() {
-                    console.error('Network error');
+                    
                     showError('Network error - check connection');
                 };
                 
@@ -873,11 +873,11 @@
 
             // Render menu cards
             function renderMenus(menusData) {
-                console.log('renderMenus called with:', menusData);
+                
                 var container = document.getElementById('menuContainer');
                 
                 if (!menusData) {
-                    console.error('No menu data received');
+                    
                     showError('No menu data available');
                     return;
                 }
@@ -888,9 +888,8 @@
                     var config = menuConfig[i];
                     var menuData = menusData[config.id];
                     var isEnabled = menuData && menuData.enabled;
-                    var hasPDF = menuData && menuData.pdfs && menuData.pdfs[currentLanguage];
+                    var hasPDF = menuData && menuData.pdfs && menuData.pdfs[currentLanguage] && menuData.pdfs[currentLanguage].available;
                     
-                    console.log('Menu:', config.id, 'Enabled:', isEnabled, 'HasPDF:', !!hasPDF);
                     var disabledClass = (!isEnabled || !hasPDF) ? 'disabled' : '';
                     
                     html += '<div class="menu-card ' + disabledClass + '" onclick="openMenu(\'' + config.id + '\')">';
@@ -1058,7 +1057,7 @@
                     
                     renderPage(1);
                 }).catch(function(error) {
-                    console.error('PDF loading error:', error);
+                    
                     container.innerHTML = '<div class="pdf-loading">Failed to load PDF</div>';
                 });
             }
@@ -1119,7 +1118,7 @@
                     
                     renderPage(1);
                 }).catch(function(error) {
-                    console.error('PDF loading error:', error);
+                    
                     container.innerHTML = '<div class="error">Failed to load PDF</div>';
                 });
             }
