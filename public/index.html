@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -8,21 +8,28 @@
     <meta name="apple-mobile-web-app-title" content="Bellevue">
     <title>Restaurant Menu - Bellevue</title>
     <link rel="apple-touch-icon" href="/logo.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/logo.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/logo.png">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
             background: #f8f8f8;
             color: #333;
         }
-        
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
-        
+
         .logo {
             max-width: 300px;
             width: 100%;
@@ -30,16 +37,14 @@
             margin: 0 auto 30px auto;
             display: block;
         }
-        
-        /* Language Selector */
+
         .language-selector {
             display: flex;
             gap: 10px;
             justify-content: center;
             margin-bottom: 30px;
-            flex-wrap: wrap;
         }
-        
+
         .lang-btn {
             padding: 10px 20px;
             border: 2px solid #b79a5f;
@@ -48,16 +53,17 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
         }
-        
+
         .lang-btn.active {
             background: #b79a5f;
             color: white;
         }
-        
-        /* Banners */
+
+        .lang-btn:active {
+            transform: scale(0.95);
+        }
+
         .banner {
             background: white;
             border: 1px solid #ddd;
@@ -69,40 +75,41 @@
             align-items: center;
             gap: 15px;
         }
-        
+
         .banner:active {
             background: #f0f0f0;
         }
-        
+
         .banner-icon {
             font-size: 2rem;
             width: 50px;
             text-align: center;
         }
-        
+
         .banner-text {
             flex: 1;
         }
-        
+
         .banner h3 {
             color: #b79a5f;
             font-size: 1rem;
             margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        
+
         .banner p {
             color: #666;
             font-size: 0.9rem;
         }
-        
-        /* Menu Grid */
+
         .menu-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             margin-top: 20px;
         }
-        
+
         .menu-card {
             background: white;
             border: 2px solid #e0e0e0;
@@ -110,36 +117,53 @@
             padding: 30px 20px;
             text-align: center;
             cursor: pointer;
+            transition: all 0.3s ease;
         }
-        
+
         .menu-card:active {
             transform: translateY(-5px);
             box-shadow: 0 8px 20px rgba(183, 154, 95, 0.15);
         }
-        
+
         .menu-card.disabled {
             opacity: 0.3;
             cursor: not-allowed;
             pointer-events: none;
         }
-        
+
         .menu-icon {
             font-size: 3rem;
             margin-bottom: 15px;
             display: block;
         }
-        
+
         .menu-card h2 {
             font-size: 1.3rem;
             color: #b79a5f;
             margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
-        
+
         .menu-card p {
             color: #666;
             font-size: 0.85rem;
         }
-        
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .error {
+            text-align: center;
+            padding: 60px 20px;
+            color: #d9534f;
+            font-size: 1.1rem;
+        }
+
         /* PDF Viewer */
         .pdf-viewer {
             display: none;
@@ -151,11 +175,11 @@
             background: white;
             z-index: 1000;
         }
-        
+
         .pdf-viewer.active {
             display: block;
         }
-        
+
         .pdf-header {
             position: fixed;
             top: 0;
@@ -169,12 +193,13 @@
             border-bottom: 1px solid #ddd;
             z-index: 100;
         }
-        
+
         .pdf-header h3 {
             color: #b79a5f;
             font-size: 1rem;
+            margin: 0;
         }
-        
+
         .close-btn {
             background: #f0f0f0;
             border: 1px solid #ddd;
@@ -185,67 +210,23 @@
             cursor: pointer;
             font-size: 1.2rem;
         }
-        
-        .pdf-content {
+
+        .close-btn:active {
+            background: #e0e0e0;
+        }
+
+        .pdf-container {
             position: absolute;
             top: 56px;
             left: 0;
             right: 0;
-            bottom: 60px;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f5f5f5;
-        }
-        
-        .pdf-canvas {
-            max-width: 100%;
-            max-height: 100%;
-        }
-        
-        .pdf-nav {
-            position: fixed;
             bottom: 0;
-            left: 0;
-            right: 0;
             background: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid #ddd;
-        }
-        
-        .pdf-nav button {
-            padding: 10px 20px;
-            background: #b79a5f;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-        
-        .pdf-nav button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        
-        .page-info {
-            font-size: 0.9rem;
-            color: #666;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 60px 20px;
-            color: #666;
         }
     </style>
 </head>
 <body>
-    <div class="container" id="mainContainer">
+    <div class="container">
         <header>
             <img src="logo.png" alt="Bellevue" class="logo">
             
@@ -253,23 +234,22 @@
                 <button onclick="changeLanguage('de')" class="lang-btn active" id="lang-de">Deutsch</button>
                 <button onclick="changeLanguage('en')" class="lang-btn" id="lang-en">English</button>
                 <button onclick="changeLanguage('fr')" class="lang-btn" id="lang-fr">Français</button>
-                <button onclick="changeLanguage('it')" class="lang-btn" id="lang-it">Italiano</button>
             </div>
             
-            <div class="banner" onclick="showInfo('finedining')">
+            <div class="banner" onclick="alert('Fine Dining Info')">
                 <span class="banner-icon">🍽️</span>
                 <div class="banner-text">
-                    <h3 id="banner1Title">Fine Dining</h3>
-                    <p id="banner1Desc">Experience culinary excellence</p>
+                    <h3>Fine Dining</h3>
+                    <p>Experience culinary excellence</p>
                 </div>
                 <span>›</span>
             </div>
             
-            <div class="banner" onclick="showInfo('events')">
+            <div class="banner" onclick="alert('Special Events Info')">
                 <span class="banner-icon">🎉</span>
                 <div class="banner-text">
-                    <h3 id="banner2Title">Special Events</h3>
-                    <p id="banner2Desc">Celebrate with us</p>
+                    <h3>Special Events</h3>
+                    <p>Celebrate with us</p>
                 </div>
                 <span>›</span>
             </div>
@@ -286,26 +266,14 @@
             <h3 id="pdfTitle"></h3>
             <button class="close-btn" onclick="closePDF()">×</button>
         </div>
-        <div class="pdf-content" id="pdfContent">
-            <canvas id="pdfCanvas" class="pdf-canvas"></canvas>
-        </div>
-        <div class="pdf-nav">
-            <button onclick="prevPage()" id="prevBtn">◄ Zurück</button>
-            <span class="page-info" id="pageInfo">Seite 1 von 1</span>
-            <button onclick="nextPage()" id="nextBtn">Weiter ►</button>
-        </div>
+        <div class="pdf-container" id="pdfContainer"></div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
     <script>
         var API_URL = window.location.origin + '/api';
-        var APP_VERSION = '2.1.0';
+        var APP_VERSION = '3.1.0';
         var currentLanguage = 'de';
-        var currentPDF = null;
-        var currentPage = 1;
-        var totalPages = 1;
         
-        // Translations
         var translations = {
             de: {
                 daily: 'Tageskarte',
@@ -315,31 +283,17 @@
                 wine: 'Weinkarte',
                 wineDesc: 'Erlesene Weine',
                 beverages: 'Getränke',
-                beveragesDesc: 'Getränkeauswahl',
-                banner1: 'Fine Dining',
-                banner1Desc: 'Kulinarische Exzellenz erleben',
-                banner2: 'Special Events',
-                banner2Desc: 'Feiern Sie mit uns',
-                prev: '◄ Zurück',
-                next: 'Weiter ►',
-                pageOf: 'Seite {page} von {total}'
+                beveragesDesc: 'Getränkeauswahl'
             },
             en: {
                 daily: 'Daily Menu',
-                dailyDesc: 'Today\'s Specialties',
+                dailyDesc: "Today's Specials",
                 menu: 'Menu',
                 menuDesc: 'Complete Menu',
                 wine: 'Wine List',
                 wineDesc: 'Fine Wines',
                 beverages: 'Beverages',
-                beveragesDesc: 'Drink Selection',
-                banner1: 'Fine Dining',
-                banner1Desc: 'Experience culinary excellence',
-                banner2: 'Special Events',
-                banner2Desc: 'Celebrate with us',
-                prev: '◄ Previous',
-                next: 'Next ►',
-                pageOf: 'Page {page} of {total}'
+                beveragesDesc: 'Beverage Selection'
             },
             fr: {
                 daily: 'Menu du Jour',
@@ -349,35 +303,11 @@
                 wine: 'Carte des Vins',
                 wineDesc: 'Vins fins',
                 beverages: 'Boissons',
-                beveragesDesc: 'Sélection de boissons',
-                banner1: 'Fine Dining',
-                banner1Desc: 'Excellence culinaire',
-                banner2: 'Événements Spéciaux',
-                banner2Desc: 'Célébrez avec nous',
-                prev: '◄ Précédent',
-                next: 'Suivant ►',
-                pageOf: 'Page {page} sur {total}'
-            },
-            it: {
-                daily: 'Menu del Giorno',
-                dailyDesc: 'Specialità del giorno',
-                menu: 'Menu',
-                menuDesc: 'Menu completo',
-                wine: 'Carta dei Vini',
-                wineDesc: 'Vini pregiati',
-                beverages: 'Bevande',
-                beveragesDesc: 'Selezione di bevande',
-                banner1: 'Fine Dining',
-                banner1Desc: 'Eccellenza culinaria',
-                banner2: 'Eventi Speciali',
-                banner2Desc: 'Festeggia con noi',
-                prev: '◄ Indietro',
-                next: 'Avanti ►',
-                pageOf: 'Pagina {page} di {total}'
+                beveragesDesc: 'Sélection de boissons'
             }
         };
         
-        // Version check
+        // Version check (delayed to avoid reload loop)
         function checkVersion() {
             var xhr = new XMLHttpRequest();
             xhr.open('GET', API_URL + '/version?t=' + Date.now(), true);
@@ -393,31 +323,16 @@
             };
             xhr.send();
         }
-        
-        // Check version AFTER page loads, not before
-        setTimeout(checkVersion, 2000);
+        setTimeout(checkVersion, 3000);
         
         // Change language
         function changeLanguage(lang) {
             currentLanguage = lang;
             
-            // Update active button
-            document.getElementById('lang-de').className = 'lang-btn';
-            document.getElementById('lang-en').className = 'lang-btn';
-            document.getElementById('lang-fr').className = 'lang-btn';
-            document.getElementById('lang-it').className = 'lang-btn';
-            document.getElementById('lang-' + lang).className = 'lang-btn active';
-            
-            // Update banner text
-            var t = translations[lang];
-            document.getElementById('banner1Title').textContent = t.banner1;
-            document.getElementById('banner1Desc').textContent = t.banner1Desc;
-            document.getElementById('banner2Title').textContent = t.banner2;
-            document.getElementById('banner2Desc').textContent = t.banner2Desc;
-            
-            // Update nav buttons
-            document.getElementById('prevBtn').textContent = t.prev;
-            document.getElementById('nextBtn').textContent = t.next;
+            // Update button states
+            document.getElementById('lang-de').className = 'lang-btn' + (lang === 'de' ? ' active' : '');
+            document.getElementById('lang-en').className = 'lang-btn' + (lang === 'en' ? ' active' : '');
+            document.getElementById('lang-fr').className = 'lang-btn' + (lang === 'fr' ? ' active' : '');
             
             // Reload menus
             loadMenus();
@@ -426,20 +341,28 @@
         // Load menus
         function loadMenus() {
             var container = document.getElementById('menuContainer');
-            container.innerHTML = '<div class="loading">Loading...</div>';
+            container.innerHTML = '<div class="loading">Fetching menus...</div>';
             
             var xhr = new XMLHttpRequest();
             xhr.open('GET', API_URL + '/menus', true);
+            
             xhr.onload = function() {
                 if (xhr.status === 200) {
                     try {
                         var data = JSON.parse(xhr.responseText);
                         showMenus(data);
                     } catch (e) {
-                        container.innerHTML = '<div class="loading">Error loading menus</div>';
+                        container.innerHTML = '<div class="error">Error: ' + e.message + '</div>';
                     }
+                } else {
+                    container.innerHTML = '<div class="error">Server error: ' + xhr.status + '</div>';
                 }
             };
+            
+            xhr.onerror = function() {
+                container.innerHTML = '<div class="error">Network error</div>';
+            };
+            
             xhr.send();
         }
         
@@ -448,14 +371,14 @@
             var container = document.getElementById('menuContainer');
             var t = translations[currentLanguage];
             
-            var menus = [
-                { id: 'daily', icon: '🍽️', name: t.daily, desc: t.dailyDesc },
-                { id: 'menu', icon: '📋', name: t.menu, desc: t.menuDesc },
-                { id: 'wine', icon: '🍷', name: t.wine, desc: t.wineDesc },
-                { id: 'beverages', icon: '🍺', name: t.beverages, desc: t.beveragesDesc }
-            ];
-            
             var html = '<div class="menu-grid">';
+            
+            var menus = [
+                { id: 'daily', icon: '🍽️' },
+                { id: 'menu', icon: '📋' },
+                { id: 'wine', icon: '🍷' },
+                { id: 'beverages', icon: '🍺' }
+            ];
             
             for (var i = 0; i < menus.length; i++) {
                 var menu = menus[i];
@@ -466,8 +389,8 @@
                 
                 html += '<div class="menu-card ' + disabled + '" onclick="openMenu(\'' + menu.id + '\')">';
                 html += '<span class="menu-icon">' + menu.icon + '</span>';
-                html += '<h2>' + menu.name + '</h2>';
-                html += '<p>' + menu.desc + '</p>';
+                html += '<h2>' + t[menu.id] + '</h2>';
+                html += '<p>' + t[menu.id + 'Desc'] + '</p>';
                 html += '</div>';
             }
             
@@ -475,28 +398,32 @@
             container.innerHTML = html;
         }
         
-        // Open menu
+        // Open menu (load PDF in iframe)
         function openMenu(id) {
             var xhr = new XMLHttpRequest();
             xhr.open('GET', API_URL + '/menus/' + id + '/' + currentLanguage, true);
+            
             xhr.onload = function() {
                 if (xhr.status === 200) {
                     try {
                         var pdfData = JSON.parse(xhr.responseText);
                         showPDF(pdfData, id);
-                    } catch (e) {}
+                    } catch (e) {
+                        // Error
+                    }
                 }
             };
+            
             xhr.send();
         }
         
-        // Show PDF
+        // Show PDF in iframe
         function showPDF(pdfData, menuName) {
             document.getElementById('pdfTitle').textContent = menuName.toUpperCase();
             document.getElementById('pdfViewer').className = 'pdf-viewer active';
             
             var container = document.getElementById('pdfContainer');
-            container.innerHTML = '<div style="text-align:center;padding:40px;">Loading PDF...</div>';
+            container.innerHTML = '<div style="text-align:center;padding:40px;">Loading...</div>';
             
             // Convert base64 to blob
             var base64 = pdfData.base64;
@@ -509,108 +436,16 @@
             var blob = new Blob([bytes], { type: 'application/pdf' });
             var url = URL.createObjectURL(blob);
             
-            // Use simple iframe - works on ALL browsers including iOS 9
-            container.innerHTML = '<iframe src="' + url + '" style="width:100%;height:100%;border:none;background:white;"></iframe>';
+            // Simple iframe - works everywhere
+            container.innerHTML = '<iframe src="' + url + '" style="width:100%;height:100%;border:none;"></iframe>';
         }
         
-        // Setup touch swipe (called after PDF loaded)
-        var touchHandlersSetup = false;
-        function setupTouchHandlers() {
-            if (touchHandlersSetup) return;
-            touchHandlersSetup = true;
-            
-            var touchStartX = 0;
-            var touchStartY = 0;
-            var canvas = document.getElementById('pdfCanvas');
-            
-            canvas.addEventListener('touchstart', function(e) {
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-            }, false);
-            
-            canvas.addEventListener('touchend', function(e) {
-                var touchEndX = e.changedTouches[0].clientX;
-                var touchEndY = e.changedTouches[0].clientY;
-                var diffX = touchStartX - touchEndX;
-                var diffY = touchStartY - touchEndY;
-                
-                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
-                    if (diffX > 0) {
-                        nextPage();
-                    } else {
-                        prevPage();
-                    }
-                }
-            }, false);
-        }
-        
-        // Render page
-        function renderPage(num) {
-            if (!currentPDF) return;
-            
-            currentPDF.getPage(num).then(function(page) {
-                var canvas = document.getElementById('pdfCanvas');
-                var ctx = canvas.getContext('2d');
-                
-                var viewport = page.getViewport({ scale: 1 });
-                var containerWidth = window.innerWidth;
-                var containerHeight = window.innerHeight - 116; // Header + nav
-                
-                var scale = Math.min(
-                    containerWidth / viewport.width,
-                    containerHeight / viewport.height
-                ) * 0.95;
-                
-                var scaledViewport = page.getViewport({ scale: scale });
-                
-                canvas.height = scaledViewport.height;
-                canvas.width = scaledViewport.width;
-                
-                page.render({
-                    canvasContext: ctx,
-                    viewport: scaledViewport
-                });
-                
-                updateNav();
-            });
-        }
-        
-        // Update navigation
-        function updateNav() {
-            var t = translations[currentLanguage];
-            document.getElementById('pageInfo').textContent = 
-                t.pageOf.replace('{page}', currentPage).replace('{total}', totalPages);
-            
-            document.getElementById('prevBtn').disabled = (currentPage === 1);
-            document.getElementById('nextBtn').disabled = (currentPage === totalPages);
-        }
-        
-        // Navigation
-        function nextPage() {
-            if (currentPage < totalPages) {
-                currentPage++;
-                renderPage(currentPage);
-            }
-        }
-        
-        function prevPage() {
-            if (currentPage > 1) {
-                currentPage--;
-                renderPage(currentPage);
-            }
-        }
-        
+        // Close PDF
         function closePDF() {
             document.getElementById('pdfViewer').className = 'pdf-viewer';
-            currentPDF = null;
         }
         
-        // Info pages (placeholder)
-        function showInfo(type) {
-            // TODO: Add info pages
-        }
-        
-        // Initialize
+        // Start loading
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', loadMenus);
         } else {
