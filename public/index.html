@@ -383,7 +383,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
     <script>
         var API_URL = window.location.origin + '/api';
-        var APP_VERSION = '1.0.9'; // Must match server version
+        var APP_VERSION = '1.1.0'; // Must match server version
         var currentPDFPage = 1;
         var totalPDFPages = 1;
         
@@ -515,9 +515,9 @@
             
             title.textContent = menuName.toUpperCase();
             viewer.className = 'pdf-viewer active';
-            container.innerHTML = '<div style="text-align:center;padding:60px;">Loading PDF...</div>';
+            container.innerHTML = '<div style="text-align:center;padding:60px;color:#666;">Loading PDF...</div>';
             
-            // Convert base64 to blob
+            // Convert base64 to Uint8Array
             var base64 = pdfData.base64;
             var binary = window.atob(base64);
             var bytes = new Uint8Array(binary.length);
@@ -525,14 +525,12 @@
                 bytes[i] = binary.charCodeAt(i);
             }
             
-            // Use PDF.js if available
+            // Always use PDF.js
             if (typeof pdfjsLib !== 'undefined') {
+                pdfjsLib.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js';
                 renderPDFWithPDFJS(bytes, container);
             } else {
-                // Fallback: create blob URL and iframe
-                var blob = new Blob([bytes], { type: 'application/pdf' });
-                var url = URL.createObjectURL(blob);
-                container.innerHTML = '<iframe src="' + url + '" style="width:100%;height:100%;border:none;"></iframe>';
+                container.innerHTML = '<div style="text-align:center;padding:60px;color:#d9534f;">PDF library failed to load</div>';
             }
         }
         
