@@ -222,6 +222,8 @@
             right: 0;
             bottom: 0;
             background: white;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
         }
     </style>
 </head>
@@ -271,7 +273,7 @@
 
     <script>
         var API_URL = window.location.origin + '/api';
-        var APP_VERSION = '3.1.0';
+        var APP_VERSION = '3.1.1';
         var currentLanguage = 'de';
         
         var translations = {
