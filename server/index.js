@@ -12,7 +12,7 @@ var cors = require('cors');
 var app = express();
 var PORT = process.env.PORT || 3000;
 var JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production';
-var APP_VERSION = '2.1.0'; // Increment this when you update the app
+var APP_VERSION = '3.1.0'; // Increment this when you update the app
 
 // Middleware
 app.use(cors());
@@ -38,7 +38,7 @@ var SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 
 // Menu types
 var MENU_TYPES = ['daily', 'menu', 'wine', 'beverages'];
-var LANGUAGES = ['de', 'en', 'fr', 'it'];
+var LANGUAGES = ['de', 'en', 'fr'];
 
 // Create upload directories for each menu type
 MENU_TYPES.forEach(function(type) {
