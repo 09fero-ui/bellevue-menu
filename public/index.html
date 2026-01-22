@@ -172,6 +172,37 @@
             color: #b79a5f;
             font-size: 1rem;
             margin: 0;
+            flex: 1;
+        }
+
+        .pdf-nav {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            color: #333;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .nav-btn:active {
+            background: #e0e0e0;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
         }
 
         .close-btn {
@@ -202,37 +233,28 @@
             overflow-x: scroll;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
-            display: -webkit-box;
-            display: -webkit-flex;
-            display: flex;
-            -webkit-box-orient: horizontal;
-            -webkit-box-direction: normal;
-            -webkit-flex-direction: row;
-            flex-direction: row;
-            scroll-snap-type: x mandatory;
-            -webkit-scroll-snap-type: mandatory;
-            -webkit-scroll-snap-points-x: repeat(100%);
+            white-space: nowrap;
+            font-size: 0;
         }
 
         .pdf-page-wrapper {
+            display: inline-block;
             width: 100vw;
-            min-width: 100vw;
             height: 100%;
-            -webkit-box-flex: 0;
-            -webkit-flex: 0 0 auto;
-            flex: 0 0 auto;
-            display: -webkit-box;
-            display: -webkit-flex;
-            display: flex;
-            -webkit-box-align: center;
-            -webkit-align-items: center;
-            align-items: center;
-            -webkit-box-pack: center;
-            -webkit-justify-content: center;
-            justify-content: center;
-            background: white;
-            scroll-snap-align: start;
-            -webkit-scroll-snap-coordinate: 0 0;
+            vertical-align: top;
+            white-space: normal;
+            text-align: center;
+            position: relative;
+        }
+
+        .pdf-page {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            -webkit-transform: translate(-50%, -50%);
+            max-width: 95vw;
+            max-height: 95%;
         }
 
         .pdf-page {
@@ -339,7 +361,12 @@
     <div id="pdfViewer" class="pdf-viewer">
         <div class="pdf-header">
             <h3 id="pdfTitle"></h3>
-            <button class="close-btn" onclick="closePDF()">×</button>
+            <div class="pdf-nav">
+                <button class="nav-btn" id="prevBtn" onclick="prevPage()">‹</button>
+                <span id="pageInfo" style="color:#666;font-size:0.9rem;min-width:60px;text-align:center;">1 / 1</span>
+                <button class="nav-btn" id="nextBtn" onclick="nextPage()">›</button>
+                <button class="close-btn" onclick="closePDF()">×</button>
+            </div>
         </div>
         <div class="pdf-container" id="pdfContainer"></div>
     </div>
@@ -356,7 +383,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
     <script>
         var API_URL = window.location.origin + '/api';
-        var APP_VERSION = '1.0.8'; // Must match server version
+        var APP_VERSION = '1.0.9'; // Must match server version
+        var currentPDFPage = 1;
+        var totalPDFPages = 1;
         
         // Check for updates on app open
         function checkVersion() {
@@ -511,6 +540,10 @@
         function renderPDFWithPDFJS(bytes, container) {
             pdfjsLib.getDocument({ data: bytes }).promise.then(function(pdf) {
                 container.innerHTML = '';
+                totalPDFPages = pdf.numPages;
+                currentPDFPage = 1;
+                updatePageInfo();
+                
                 var containerWidth = window.innerWidth;
                 var containerHeight = window.innerHeight - 56;
                 
@@ -553,6 +586,31 @@
         // Close PDF viewer
         function closePDF() {
             document.getElementById('pdfViewer').className = 'pdf-viewer';
+        }
+        
+        // Navigate PDF pages
+        function nextPage() {
+            var container = document.getElementById('pdfContainer');
+            if (currentPDFPage < totalPDFPages) {
+                currentPDFPage++;
+                container.scrollLeft = (currentPDFPage - 1) * window.innerWidth;
+                updatePageInfo();
+            }
+        }
+        
+        function prevPage() {
+            var container = document.getElementById('pdfContainer');
+            if (currentPDFPage > 1) {
+                currentPDFPage--;
+                container.scrollLeft = (currentPDFPage - 1) * window.innerWidth;
+                updatePageInfo();
+            }
+        }
+        
+        function updatePageInfo() {
+            document.getElementById('pageInfo').textContent = currentPDFPage + ' / ' + totalPDFPages;
+            document.getElementById('prevBtn').disabled = (currentPDFPage === 1);
+            document.getElementById('nextBtn').disabled = (currentPDFPage === totalPDFPages);
         }
         
         // Show info (placeholder for now)
