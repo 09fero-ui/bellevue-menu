@@ -336,7 +336,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
     <script>
         var API_URL = window.location.origin + '/api';
-        var APP_VERSION = '1.0.4'; // Must match server version
+        var APP_VERSION = '1.0.5'; // Must match server version
         
         // Check for updates on app open
         function checkVersion() {
@@ -505,19 +505,41 @@
                     
                     // Only swipe if horizontal movement is greater than vertical
                     if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                        e.preventDefault();
+                        
                         if (diffX > 0) {
                             // Swipe left - next page
                             if (currentPage < pdf.numPages - 1) {
                                 currentPage++;
-                                container.scrollLeft = currentPage * containerWidth;
                             }
                         } else {
                             // Swipe right - previous page
                             if (currentPage > 0) {
                                 currentPage--;
-                                container.scrollLeft = currentPage * containerWidth;
                             }
                         }
+                        
+                        // Animate scroll
+                        var targetScroll = currentPage * containerWidth;
+                        var startScroll = container.scrollLeft;
+                        var diff = targetScroll - startScroll;
+                        var startTime = Date.now();
+                        var duration = 300;
+                        
+                        function animate() {
+                            var elapsed = Date.now() - startTime;
+                            var progress = Math.min(elapsed / duration, 1);
+                            
+                            // Ease out function
+                            var easeProgress = 1 - Math.pow(1 - progress, 3);
+                            container.scrollLeft = startScroll + (diff * easeProgress);
+                            
+                            if (progress < 1) {
+                                requestAnimationFrame(animate);
+                            }
+                        }
+                        
+                        animate();
                     }
                 }, false);
                 
