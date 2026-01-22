@@ -203,6 +203,9 @@
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
             display: flex;
+            scroll-snap-type: x mandatory;
+            -webkit-scroll-snap-type: mandatory;
+            -webkit-scroll-snap-points-x: repeat(100%);
         }
 
         .pdf-page-wrapper {
@@ -213,6 +216,8 @@
             align-items: center;
             justify-content: center;
             background: white;
+            scroll-snap-align: start;
+            -webkit-scroll-snap-coordinate: 0 0;
         }
 
         .pdf-page {
@@ -336,7 +341,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
     <script>
         var API_URL = window.location.origin + '/api';
-        var APP_VERSION = '1.0.5'; // Must match server version
+        var APP_VERSION = '1.0.6'; // Must match server version
         
         // Check for updates on app open
         function checkVersion() {
@@ -486,62 +491,6 @@
                 container.innerHTML = '';
                 var containerWidth = window.innerWidth;
                 var containerHeight = window.innerHeight - 56;
-                
-                var currentPage = 0;
-                var touchStartX = 0;
-                var touchStartY = 0;
-                
-                // Add touch handlers for swiping
-                container.addEventListener('touchstart', function(e) {
-                    touchStartX = e.touches[0].clientX;
-                    touchStartY = e.touches[0].clientY;
-                }, false);
-                
-                container.addEventListener('touchend', function(e) {
-                    var touchEndX = e.changedTouches[0].clientX;
-                    var touchEndY = e.changedTouches[0].clientY;
-                    var diffX = touchStartX - touchEndX;
-                    var diffY = touchStartY - touchEndY;
-                    
-                    // Only swipe if horizontal movement is greater than vertical
-                    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
-                        e.preventDefault();
-                        
-                        if (diffX > 0) {
-                            // Swipe left - next page
-                            if (currentPage < pdf.numPages - 1) {
-                                currentPage++;
-                            }
-                        } else {
-                            // Swipe right - previous page
-                            if (currentPage > 0) {
-                                currentPage--;
-                            }
-                        }
-                        
-                        // Animate scroll
-                        var targetScroll = currentPage * containerWidth;
-                        var startScroll = container.scrollLeft;
-                        var diff = targetScroll - startScroll;
-                        var startTime = Date.now();
-                        var duration = 300;
-                        
-                        function animate() {
-                            var elapsed = Date.now() - startTime;
-                            var progress = Math.min(elapsed / duration, 1);
-                            
-                            // Ease out function
-                            var easeProgress = 1 - Math.pow(1 - progress, 3);
-                            container.scrollLeft = startScroll + (diff * easeProgress);
-                            
-                            if (progress < 1) {
-                                requestAnimationFrame(animate);
-                            }
-                        }
-                        
-                        animate();
-                    }
-                }, false);
                 
                 function renderPage(num) {
                     pdf.getPage(num).then(function(page) {
