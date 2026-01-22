@@ -299,7 +299,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
     <script>
         var API_URL = window.location.origin + '/api';
-        var APP_VERSION = '2.0.0';
+        var APP_VERSION = '2.0.1';
         var currentLanguage = 'de';
         var currentPDF = null;
         var currentPage = 1;
@@ -507,8 +507,40 @@
                     totalPages = pdf.numPages;
                     currentPage = 1;
                     renderPage(1);
+                    setupTouchHandlers();
                 });
             }
+        }
+        
+        // Setup touch swipe (called after PDF loaded)
+        var touchHandlersSetup = false;
+        function setupTouchHandlers() {
+            if (touchHandlersSetup) return;
+            touchHandlersSetup = true;
+            
+            var touchStartX = 0;
+            var touchStartY = 0;
+            var canvas = document.getElementById('pdfCanvas');
+            
+            canvas.addEventListener('touchstart', function(e) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }, false);
+            
+            canvas.addEventListener('touchend', function(e) {
+                var touchEndX = e.changedTouches[0].clientX;
+                var touchEndY = e.changedTouches[0].clientY;
+                var diffX = touchStartX - touchEndX;
+                var diffY = touchStartY - touchEndY;
+                
+                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                    if (diffX > 0) {
+                        nextPage();
+                    } else {
+                        prevPage();
+                    }
+                }
+            }, false);
         }
         
         // Render page
@@ -541,33 +573,6 @@
                 updateNav();
             });
         }
-        
-        // Touch swipe detection
-        var touchStartX = 0;
-        var touchStartY = 0;
-        
-        document.getElementById('pdfCanvas').addEventListener('touchstart', function(e) {
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        }, false);
-        
-        document.getElementById('pdfCanvas').addEventListener('touchend', function(e) {
-            var touchEndX = e.changedTouches[0].clientX;
-            var touchEndY = e.changedTouches[0].clientY;
-            var diffX = touchStartX - touchEndX;
-            var diffY = touchStartY - touchEndY;
-            
-            // Horizontal swipe detection
-            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
-                if (diffX > 0) {
-                    // Swipe left = next page
-                    nextPage();
-                } else {
-                    // Swipe right = previous page
-                    prevPage();
-                }
-            }
-        }, false);
         
         // Update navigation
         function updateNav() {
