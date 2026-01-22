@@ -299,7 +299,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
     <script>
         var API_URL = window.location.origin + '/api';
-        var APP_VERSION = '2.0.2';
+        var APP_VERSION = '2.1.0';
         var currentLanguage = 'de';
         var currentPDF = null;
         var currentPage = 1;
@@ -495,6 +495,10 @@
             document.getElementById('pdfTitle').textContent = menuName.toUpperCase();
             document.getElementById('pdfViewer').className = 'pdf-viewer active';
             
+            var container = document.getElementById('pdfContainer');
+            container.innerHTML = '<div style="text-align:center;padding:40px;">Loading PDF...</div>';
+            
+            // Convert base64 to blob
             var base64 = pdfData.base64;
             var binary = window.atob(base64);
             var bytes = new Uint8Array(binary.length);
@@ -502,15 +506,11 @@
                 bytes[i] = binary.charCodeAt(i);
             }
             
-            if (typeof pdfjsLib !== 'undefined') {
-                pdfjsLib.getDocument({ data: bytes }).promise.then(function(pdf) {
-                    currentPDF = pdf;
-                    totalPages = pdf.numPages;
-                    currentPage = 1;
-                    renderPage(1);
-                    setupTouchHandlers();
-                });
-            }
+            var blob = new Blob([bytes], { type: 'application/pdf' });
+            var url = URL.createObjectURL(blob);
+            
+            // Use simple iframe - works on ALL browsers including iOS 9
+            container.innerHTML = '<iframe src="' + url + '" style="width:100%;height:100%;border:none;background:white;"></iframe>';
         }
         
         // Setup touch swipe (called after PDF loaded)
