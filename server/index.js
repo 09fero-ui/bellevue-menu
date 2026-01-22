@@ -12,6 +12,7 @@ var cors = require('cors');
 var app = express();
 var PORT = process.env.PORT || 3000;
 var JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production';
+var APP_VERSION = '1.0.2'; // Increment this when you update the app
 
 // Middleware
 app.use(cors());
@@ -192,6 +193,11 @@ app.post('/api/login', function(req, res) {
 });
 
 // Get all menus (public)
+// Version check endpoint (public)
+app.get('/api/version', function(req, res) {
+    res.json({ version: APP_VERSION });
+});
+
 app.get('/api/menus', function(req, res) {
     try {
         var menus = readJSON(MENUS_FILE);
