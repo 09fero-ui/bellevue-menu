@@ -966,21 +966,36 @@
                         
                         // Only trigger horizontal swipe if it's more horizontal than vertical
                         if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                            e.preventDefault();
                             if (diffX > 0) {
                                 // Swipe left - next page
                                 if (currentPage < pdf.numPages - 1) {
                                     currentPage++;
-                                    var scrollTarget = currentPage * containerWidth;
-                                    container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
                                 }
                             } else {
                                 // Swipe right - previous page
                                 if (currentPage > 0) {
                                     currentPage--;
-                                    var scrollTarget = currentPage * containerWidth;
-                                    container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
                                 }
                             }
+                            
+                            // Animate scroll for old Safari
+                            var targetScroll = currentPage * containerWidth;
+                            var startScroll = container.scrollLeft;
+                            var diff = targetScroll - startScroll;
+                            var startTime = Date.now();
+                            var duration = 300;
+                            
+                            function animateScroll() {
+                                var elapsed = Date.now() - startTime;
+                                var progress = Math.min(elapsed / duration, 1);
+                                container.scrollLeft = startScroll + (diff * progress);
+                                
+                                if (progress < 1) {
+                                    requestAnimationFrame(animateScroll);
+                                }
+                            }
+                            animateScroll();
                         }
                     }, false);
                     
@@ -988,10 +1003,10 @@
                         pdf.getPage(pageNum).then(function(page) {
                             var viewport = page.getViewport({ scale: 1 });
                             
-                            // Calculate scale to fit page properly
+                            // Calculate scale to FILL SCREEN
                             var scaleWidth = containerWidth / viewport.width;
                             var scaleHeight = containerHeight / viewport.height;
-                            var scale = Math.min(scaleWidth, scaleHeight) * 0.95; // Fit with 95% to avoid overflow
+                            var scale = Math.min(scaleWidth, scaleHeight); // Fit to screen
                             
                             var scaledViewport = page.getViewport({ scale: scale });
                             
