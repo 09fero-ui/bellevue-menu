@@ -40,8 +40,10 @@
 
         .logo {
             max-width: 300px;
+            width: 100%;
             height: auto;
-            margin-bottom: 30px;
+            margin: 0 auto 30px auto;
+            display: block;
         }
 
         /* Banners Section */
@@ -231,6 +233,10 @@
         /* Banners */
         .banners-section {
             margin-bottom: 35px;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .banner-grid {
@@ -239,6 +245,7 @@
             -webkit-flex-direction: column;
             flex-direction: column;
             gap: 12px;
+            width: 100%;
         }
 
         .banner-card {
@@ -254,10 +261,13 @@
             display: flex;
             -webkit-align-items: center;
             align-items: center;
+            -webkit-justify-content: space-between;
+            justify-content: space-between;
             gap: 15px;
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
             position: relative;
             overflow: hidden;
+            width: 100%;
         }
 
         .banner-card::before {
@@ -295,6 +305,7 @@
             -webkit-flex: 1;
             flex: 1;
             text-align: left;
+            min-width: 0;
         }
 
         .banner-card h3 {
@@ -306,6 +317,9 @@
             margin: 0 0 3px 0;
             position: relative;
             z-index: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .banner-card p {
@@ -315,10 +329,13 @@
             margin: 0;
             position: relative;
             z-index: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .banner-arrow {
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             color: #b79a5f;
             opacity: 0.5;
             flex-shrink: 0;
